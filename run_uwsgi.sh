@@ -44,6 +44,4 @@ uwsgi \
     --http-websockets \
     \
     --attach-daemon=${BASEDIR}/web/dev/celery_worker.sh \
-    --attach-daemon=${BASEDIR}/web/dev/run_collectstatic.sh \
     $*
-
