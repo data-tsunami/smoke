@@ -27,7 +27,6 @@ Requires
 Next steps
 ----------
 
-* Create Dockerfile
 * Load Spark results on IPython Notebook
 * Kill running jobs
 * Better integratoin with Yarn API
@@ -40,6 +39,8 @@ TODO
 * Refactor actions to reuse code
 * Evaluate paramiko instead of Popen + ssh. See: http://www.paramiko.org/
 * Evaluate 'load'. See: https://github.com/apache/spark/blob/master/repl/src/main/scala/org/apache/spark/repl/SparkILoop.scala
+* Docker: use non-root user
+* Docker: mount SQlite database in volume
 
 Licence
 -------
