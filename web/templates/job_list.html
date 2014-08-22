@@ -1,0 +1,37 @@
+{% extends "template.html" %}
+
+<html>
+<body>
+
+{% block content %}
+
+		<h3>Job list</h3>
+
+		<table class="table table-condensed">
+           <tr>
+           	<td width="1%">#</td>
+           	<td width="20%" style="text-align: center;">Start</td>
+           	<td width="1%">-</td>
+           	<td width="80%">Title</td>
+           </tr>
+        {% for job in object_list %}
+            <tr>
+            	<td><a href="{% url 'job_details' job.id %}">{{ job.id }}</a></td>
+            	<td style="text-align: right;">
+            		<a href="{% url 'job_details' job.id %}">{{ job.start }}</a>
+            	</td>
+            	<td><a href="{% url 'index' %}?restore_job_id={{ job.id }}"
+            			><span class="glyphicon glyphicon-repeat"></span>
+					</a>
+            	</td>
+            	<td>{{ job.title|default:"(no title)" }}</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="3"><em>No JOB found</em></td></tr>
+        {% endfor %}
+		</table>
+
+{% endblock content %}
+
+</body>
+</html>

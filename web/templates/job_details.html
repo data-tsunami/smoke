@@ -1,0 +1,53 @@
+{% extends "template.html" %}
+
+<html>
+<head>
+
+{% block htmlheader %}
+
+	<style type="text/css">
+
+		.display_obj_title {
+			text-align: right;
+			font-weight: bold;
+		}
+
+		.display_obj_value {
+		}
+
+	</style>
+
+{% endblock htmlheader %}
+
+</head>
+<body>
+
+{% block content %}
+
+		<h3>Job details</h3>
+
+		<div class=".container">
+		    <div class="row">
+		        <div class="col-md-2 display_obj_title">Title</div>
+		        <div class="col-md-10 display_obj_value">
+		            <p>{{ object.title|default:"(no title)" }}</p>
+		        </div>
+		    </div>
+		    <div class="row">
+		        <div class="col-md-2 display_obj_title">Script</div>
+		        <div class="col-md-10 display_obj_value">
+		            <p><pre style="font-size: 0.7em">{{ object.script}}</pre></p>
+		        </div>
+		    </div>
+		    <div class="row">
+		        <div class="col-md-2 display_obj_title">Log</div>
+		        <div class="col-md-10 display_obj_value">
+		            <p><pre style="font-size: 0.7em">{{ object.log}}</pre></p>
+		        </div>
+		    </div>
+		</div>
+
+{% endblock content %}
+
+</body>
+</html>

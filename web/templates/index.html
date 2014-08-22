@@ -1,0 +1,437 @@
+{% extends "template.html" %}
+{% load datatsunami_extras %}
+
+<html>
+
+<head>
+{% block htmlheader %}
+
+<style type="text/css">
+
+/*
+div .logreset {
+	background-color: #fff;
+	border: 1px solid #eee;
+}
+
+.pre-logreset {
+	background-color: #fff;
+	border-color: #fff;
+}
+*/
+
+#scriptEditor {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	height: 300px;
+}
+
+#scriptEditorContainer {
+	height: 310px;
+}
+
+#logBox {
+	background-color: #fff;
+	border: 1px solid #eee;
+	height: 300px;
+	overflow: scroll;
+	color: #444;
+}
+
+#logBox .line {
+    white-space: pre;
+    font-size: 0.7em;
+    font-family: "Lucida Console", Monaco, monospace;
+}
+
+#logBox .line-error {
+	color: #c00;
+}
+
+#logBox .line-output {
+	color: #3d7696;
+}
+
+</style>
+
+<script type="text/javascript" src="https://ajaxorg.github.io/ace-builds/src-min-noconflict/ace.js"></script>
+
+{% endblock htmlheader %}
+</head>
+
+<body>
+
+
+{% block content %}
+
+	<h4>Submit Spark JOBs <small>Insert here your scala script</small></h4>
+
+	<div class="row" id="scriptEditorContainer">
+	  <div class="col-md-12"><div id="scriptEditor">{{script}}</div></div>
+	</div>
+
+	<div class="row">
+	  <div class="col-md-11">
+		<button type="submit" class="btn btn-primary form_controls"
+			id="submitJobButton"><span
+				class="glyphicon glyphicon-play"></span> Launch</button>
+
+		<button type="button" class="btn btn-primary form_controls"
+			id="resetUiButton"><span
+				class="glyphicon glyphicon-trash"></span> Reset</button>
+		
+		<small><em>
+			<span class="glyphicon glyphicon-info-sign"></span>
+			<span id="messagesStatus"></span></em></small>
+			
+	  </div>
+	  <div class="col-md-1" style="text-align: right;">
+	  
+		<div class="btn-group">
+		  <button class="btn btn-default btn-sm dropdown-toggle"
+		  		type="button" data-toggle="dropdown">
+		    Actions <span class="caret"></span>
+		  </button>
+		  <ul class="dropdown-menu" role="menu">
+			<li><a id="echoUiButton" href="javascript:void(0);">Echo</a></li>
+			<li><a id="catUiButton" href="javascript:void(0);">Cat</a></li>
+		  </ul>
+		</div>
+	  
+	  	<!--
+		<button type="button" class="btn btn-default form_controls"
+			id="echoUiButton"><span
+				class="glyphicon glyphicon-retweet"></span> Echo</button>
+		<button type="button" class="btn btn-default form_controls"
+			id="catUiButton"><span
+				class="glyphicon glyphicon-retweet"></span> Cat</button>
+		-->
+
+	  </div>
+	</div>
+
+	<hr>
+
+	<div class="row">
+	  <div class="col-md-2" style="text-align: right;">
+	  	<p>
+		  	<img id="processing-animation" style="display: none;"
+				src="{{ STATIC_URL }}/datatsunami-spark-ui/processing.gif">
+		  	Progress:</p>
+	  </div>
+	  <div class="col-md-10"><div id="progressbar"></div></div>
+	</div>
+
+	<div class="row">
+	  <div class="col-md-2" style="text-align: right;"><p>Job status:</p></div>
+	  <div class="col-md-10">
+			<!--  -->
+			<span class="label label-default status_item" id="status_submitted">Submited</span>
+			<!--  -->
+			<span class="label label-default status_item" id="status_receivedByWorker">InWorker</span>
+			<!--  -->
+			<span class="label label-default status_item"
+				id="status_spark_started">SparkStarted</span>
+			<!--  -->
+			<span class="label label-default status_item"
+				id="status_appMasterLaunched">AppMasterLaunched</span>
+			<!--  -->
+			<span id="status_progressUpdate"></span>
+			<!--  -->
+			<span class="label label-default status_item"
+				id="status_spark_finished">Finished</span>
+		</div>
+	</div>
+
+	<div id="logBox">
+	</div>
+
+{% endblock content %}
+
+<script type="text/javascript">
+
+{% block postbodyjs %}
+
+jQuery(document).ready(function($) {
+
+	 //
+	 // PROCESS -- events
+	 //
+	
+	 var jobSubmitted = function(msg_object) {
+	 	$("#status_submitted").removeClass("label-default").addClass("label-success");
+	 	$("#progressbar").progressbar({ value: 5 });
+	 };
+	
+	 var receivedByWorker = function(msg_object) {
+	 	$("#status_receivedByWorker").removeClass("label-default").addClass("label-success");
+	 	$("#progressbar").progressbar({ value: 10 });
+	 };
+	
+	 var sparkStarted = function(msg_object) {
+	 	$("#status_spark_started").removeClass("label-default").addClass("label-success");
+	 	$("#progressbar").progressbar({ value: 15 });
+	 };
+	
+	 var appMasterLaunched = function(msg_object) {
+	 	$("#status_appMasterLaunched").removeClass("label-default").addClass("label-success");
+	 	$("#progressbar").progressbar({ value: 20 });
+	 };
+	
+	 var outputFilenameReported = function(msg_object) {
+	 	setMessageStatus("OUTPUT FILE: " + msg_object.outputFilenameReported);
+	 };
+	
+	 //
+	 // FINISH -- events
+	 //
+	
+	 var jobFinishedOk = function(msg_object) {
+	 	$("#status_spark_finished").removeClass("label-default").addClass("label-success");
+	 	$("#status_spark_finished").text("" +  $("#status_spark_finished").text());
+	 	$("#progressbar").progressbar({ value: 100 });
+	 	setUiFinishedProcessing();
+	 };
+	
+	 var jobFinishedWithError = function(msg_object) {
+	 	$("#status_spark_finished").removeClass("label-default").addClass("label-danger");
+	 	$("#progressbar").progressbar({ value: 100 });
+	 	$('.form_controls').removeAttr('disabled');
+	 	setUiFinishedProcessing();
+	 };
+	
+	 //
+	 // PROGRESS -- events
+	 //
+	
+	 var progressUpdate = function(msg_object) {
+	 	//$("#status_progressUpdate").removeClass("label-default").addClass("label-success");
+	 	//$("#status_progressUpdate").text("" + msg_object.progressDone + "/" + msg_object.progressTotal);
+
+	 	if(msg_object.progressDone == 1) {
+	 		$(".last_progressUpdate").removeClass("last_progressUpdate");
+	 		var newProgress = document.createElement("span");
+	 		newProgress.setAttribute("class", "label label-success last_progressUpdate");
+	 		// $("#status_progressUpdate").appendChild(newProgress);
+	 		// $("#status_progressUpdate").appendChild(newProgress);
+	 		document.getElementById('status_progressUpdate').appendChild(newProgress);
+	 		document.getElementById('status_progressUpdate').appendChild(document.createTextNode(' '));
+	 	}
+	 	
+	 	$(".last_progressUpdate").text("" + msg_object.progressDone + "/" + msg_object.progressTotal);
+
+	 	// $("#progressbar").progressbar({ value: 100 });
+	 	try {
+	 		var min = 20.0;
+	 		var max = 90.0;
+	 		var totalSteps = parseFloat(msg_object.progressTotal);
+	 		var done = parseFloat(msg_object.progressDone);
+	 		var relativeProgress = (max - min) * (done/totalSteps) ;
+	 		var progress = min + relativeProgress;
+	 		if (progress > min && progress <= max) {
+	 			$("#progressbar").progressbar({ value: progress });
+	 		}
+	 	} catch(err) {
+	 	}
+	 	
+		// <span class="label label-default status_item status_progressUpdate last_progressUpdate">xxx</span>
+		// status_appMasterLaunched
+
+	 };
+	
+	 //
+	 // Receive a MESSAGER though the WebSocket from the server
+	 //
+	
+	 var handleWebSocketMessage = function(msg) {
+	     console.log('Message from Websocket: ' + msg);
+	
+	     try {
+	     	var msg_object = JSON.parse(msg);
+	     } catch(err) {
+	     	console.error(err);
+	     	var msg_object = {};
+	     }
+	
+	     var handled = false;
+	     if(msg_object.jobSubmitted) {
+	     	jobSubmitted(msg_object);
+	     	handled = true;
+	     }
+	
+	     if(msg_object.receivedByWorker) {
+	     	receivedByWorker(msg_object);
+	     	handled = true;
+	     }
+	     
+	     if(msg_object.sparkStarted) {
+	     	sparkStarted(msg_object);
+	     	handled = true;
+	     }
+	     
+	     if(msg_object.jobFinishedOk) {
+	     	jobFinishedOk(msg_object);
+	     	handled = true;
+	     }
+	
+	     if(msg_object.jobFinishedWithError) {
+	     	jobFinishedWithError(msg_object);
+	     	handled = true;
+	     }
+	
+	     if(msg_object.appMasterLaunched) {
+	     	appMasterLaunched(msg_object);
+	     	handled = true;
+	     }
+	
+	     if(msg_object.progressUpdate) {
+	     	progressUpdate(msg_object);
+	     	handled = true;
+	     }
+	
+	     if(msg_object.outputFilenameReported) {
+	     	outputFilenameReported(msg_object);
+	     	handled = true;
+	     }
+	     
+	     var logBox = document.getElementById('logBox');
+	     if(msg_object.line) {
+ 			var newLine = document.createElement("div");
+ 			
+ 			if (msg_object.errorLine)
+				newLine.setAttribute("class", "line line-error");
+ 			else if (msg_object.lineIsFromRemoteOutput)
+				newLine.setAttribute("class", "line line-output");
+	    	else
+	    		newLine.setAttribute("class", "line");
+	    	newLine.appendChild(document.createTextNode(msg_object.line));
+			logBox.appendChild(newLine);
+	     } else {
+	     	if(! handled) {
+	 			var newLine = document.createElement("div");
+				newLine.setAttribute("class", "line line-error")
+		    	newLine.appendChild(document.createTextNode(
+		    			"****** ERROR AL PARSEAR MENSAJE WebSocket: " + msg + "\n"));
+				logBox.appendChild(newLine);
+	     	}
+	     }
+	     $('#logBox').scrollTop($('#logBox')[0].scrollHeight);
+	 };
+
+		// FIRST, websocket
+	    var ws4redis = WS4Redis({
+	        uri: '{{ WEBSOCKET_URI }}{% settings_value 'REDIS_PUBLISHER_FACILITY_LABEL' %}?subscribe-broadcast&echo',
+	        receive_message: handleWebSocketMessage,
+	        heartbeat_msg: {{ WS4REDIS_HEARTBEAT }}
+	    });
+
+    //
+    // ACE editor
+    //
+    
+    var editor = ace.edit("scriptEditor");
+    // editor.setTheme("ace/theme/monokai");
+    // editor.setTheme("ace/theme/twilight");
+    editor.getSession().setMode("ace/mode/scala");
+    editor.setShowPrintMargin(false);
+
+    //
+    // Setup progress bar (jQuery UI)
+    //
+    
+    $("#progressbar").progressbar({
+        value: 0
+      });
+
+    $("#progressbar").height(20);
+
+    //
+    // Declare functions
+    //
+    
+    var setMessageStatus = function(message) {
+    	$('#messagesStatus').text("" + message);
+    };
+    var resetEditor = function() {
+		editor.setValue('// Script tile\n');
+	    editor.gotoLine(1);
+    };
+    
+    var resetUi = function() {
+    	$('#logBox').empty();
+    	setMessageStatus("");
+    	$("#status_progressUpdate").empty();
+    	$(".status_item").removeClass("label-success label-danger").addClass("label-default");
+    	$("#progressbar").progressbar({ value: 0 });
+    };
+
+	var resetUiAndEditor = function() {
+		resetUi();
+		resetEditor();
+	};
+
+	var setUiStartProcessing = function() {
+    	$('.form_controls').attr('disabled', 'disabled');
+    	$('#processing-animation').show();
+	};
+
+	var setUiFinishedProcessing = function() {
+		$('.form_controls').removeAttr('disabled');
+		$('#processing-animation').hide();
+	};
+
+	function setupSubmit(buttonSelector, action) {
+
+	    $(buttonSelector).click(function (){
+
+	    	setUiStartProcessing();
+			resetUi();
+			   	  
+			// Get some values from elements on the page:
+			var scriptSource = editor.getValue();
+			var csrftoken = getCookie('csrftoken');
+			
+			$.post("{% url 'post_job' %}", {
+				script: scriptSource,
+				csrfmiddlewaretoken: csrftoken,
+				action: action
+			}).done(function(data) {
+				if(data == 'ok') {
+					setMessageStatus("Submited OK");
+				} else {
+					setUiFinishedProcessing();
+					setMessageStatus("ERROR: invalid response from server");
+				}
+			}).fail(function(){
+				setUiFinishedProcessing();
+				setMessageStatus("ERROR: post failed");
+			});
+
+	    });
+
+	}
+
+	setupSubmit('#submitJobButton', 'spark-shell');
+	setupSubmit('#catUiButton', 'cat');
+	setupSubmit('#echoUiButton', 'echo');
+
+    $('#resetUiButton').click(function (){
+    	resetUiAndEditor();
+    });
+
+    resetUi();
+
+    if (("" + editor.getValue()) == "")
+    	resetEditor();
+
+});
+
+{% endblock postbodyjs %}
+
+</script>
+
+</body>
+</html>
