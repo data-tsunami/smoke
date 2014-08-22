@@ -17,6 +17,16 @@ else
 	echo "Running without --static-map."
 fi
 
+# Run collectstatics
+python manage.py collectstatic  --noinput --no-post-process
+
+# HACK: if run from Docker, start redis
+if [ "$RUNNIN_IN_DOCKER" != "" ] ; then
+	echo "Runnin on Docker... Will start redis"
+	service redis-server start
+fi
+
+# Launch uWSGI
 uwsgi \
     --module=web.wsgi:application \
     --env DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-web.settings} \
