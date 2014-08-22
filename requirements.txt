@@ -1,0 +1,17 @@
+# Django + pytz + uwsgi + redis + celery
+Django==1.6.5
+amqp==1.4.6
+anyjson==0.3.3
+billiard==3.3.0.18
+celery==3.1.13
+kombu==3.0.21
+pytz==2014.4
+redis==2.10.3
+uWSGI==2.0.6
+# django-websocket-redis
+django-websocket-redis==0.4.2
+gevent==1.0.1
+greenlet==0.4.3
+# South
+South==1.0
+six==1.7.3
