@@ -88,7 +88,8 @@ If you are brave enough, see instructions at [Dockerfile!](Dockerfile).
 ## TODO
 
 * Document and fix security issues!
-* Add Scala utilities
+* Create a 'check' script, to be used to check configuration after install
+* Add Scala utilities to be used in scripts
 * Add pagination to job history
 * Refactor parser of console output
 * Refactor actions to reuse code
