@@ -124,6 +124,10 @@ If you are brave enough, see instructions at [Dockerfile!](Dockerfile).
 
 ![Job history](/screenshot-06-job-history.png?raw=true)
 
+###### Spark Tasks progress
+
+![Spark Tasks progress](/screenshot-07-smark-task-progess.png?raw=true)
+
 
 ## Licence: GPLv3
 
