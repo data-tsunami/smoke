@@ -9,7 +9,7 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Adding model 'Job'
-        db.create_table(u'web_job', (
+        db.create_table(u'smoke_job', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('title', self.gf('django.db.models.fields.CharField')(max_length=80)),
             ('script', self.gf('django.db.models.fields.TextField')()),
@@ -17,12 +17,12 @@ class Migration(SchemaMigration):
             ('start', self.gf('django.db.models.fields.DateTimeField')()),
             ('end', self.gf('django.db.models.fields.DateTimeField')()),
         ))
-        db.send_create_signal(u'web', ['Job'])
+        db.send_create_signal(u'smoke', ['Job'])
 
 
     def backwards(self, orm):
         # Deleting model 'Job'
-        db.delete_table(u'web_job')
+        db.delete_table(u'smoke_job')
 
 
     models = {
@@ -37,4 +37,4 @@ class Migration(SchemaMigration):
         }
     }
 
-    complete_apps = ['web']
+    complete_apps = ['smoke']
