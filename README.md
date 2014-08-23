@@ -3,7 +3,9 @@ Spark UI
 
 Web interface to execute Scala jobs in Spark.
 
-Requires passwordless connection to the cluster using ssh (for launching the job). Uses `spark-shell` in Yarn-client mode.
+Requires passwordless connection to the cluster using `ssh` (for launching the job). Uses `spark-shell` in `yarn client` mode.
+
+![Architecture](/architecture.png?raw=true)
 
 Configuration
 -------------
