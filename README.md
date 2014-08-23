@@ -99,7 +99,7 @@ If you are brave enough, see instructions at [Dockerfile!](Dockerfile).
 ## Licence
 
     #===============================================================================
-    #    SparkUI - Launch Spark jobs from the web
+    #    Smoke - Launch Spark jobs from the web
     #
     #    Copyright (C) 2014 Horacio Guillermo de Oro <hgdeoro@gmail.com>
     #
