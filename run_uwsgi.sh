@@ -21,9 +21,9 @@ fi
 python manage.py collectstatic  --noinput --no-post-process
 
 # HACK: if run from Docker, start redis
-if [ "$RUNNIN_IN_DOCKER" != "" ] ; then
+if [ "$RUNNING_IN_DOCKER" != "" ] ; then
 	echo "Runnin on Docker... Will start redis"
-	service redis-server start
+	sudo service redis-server start
 fi
 
 # Launch uWSGI
