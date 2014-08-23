@@ -41,7 +41,12 @@ Smoke is developed and tested with:
 * Hadoop 2.4.1
 * Spark 1.0.2
 * Redis
-* Ubuntu 14.04
+* Ubuntu 14.04, with at least:
+  * python-dev
+  * libssl-dev
+  * openssh-client
+  * python-virtualenv
+
 
 
 ## FAQ and troubleshooting
@@ -52,7 +57,7 @@ Use the environment variable `SMOKE_UWSGI_HTTP`. For example:
 
     $ env SMOKE_UWSGI_HTTP=127.0.0.1:7777 ./run_uwsgi.sh
 
-###### Cannot connect to redis://127.0.0.1:6379/4
+###### ERROR: Cannot connect to redis://127.0.0.1:6379/4
 
 You get a lot of this in your console:
 
@@ -63,6 +68,11 @@ Install and start Redis! On Ubuntu 14.04, you must run:
 
     $ sudo apt-get install -y redis-server
     $ sudo service redis-server start
+
+
+###### ERROR: you need to build uWSGI with SSL support to use the websocket handshake api function
+
+You forgot install the required packages. Install `libssl-dev` and reinstall the `virtualenv` requirements.
 
 ###### Run in Docker
 
