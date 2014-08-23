@@ -126,6 +126,11 @@ If you are brave enough, see instructions at [Dockerfile!](Dockerfile).
 
 ###### Spark Tasks progress
 
+The log are parsed looking for **TaskSetManager** and **Finished TID**, and the progress is parsed and informed (in this case, progress was 4 task finished of 10):
+
+    14/08/23 12:48:53 INFO scheduler.DAGScheduler: Completed ShuffleMapTask(1, 0)
+    14/08/23 12:48:53 INFO scheduler.TaskSetManager: Finished TID 0 in 7443 ms on hadoop-hitachi80gb.hadoop.dev.docker.data-tsunami.com (progress: 4/10)
+
 ![Spark Tasks progress](/screenshot-07-smark-task-progess.png?raw=true)
 
 
