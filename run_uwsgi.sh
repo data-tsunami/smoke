@@ -20,11 +20,11 @@ else
 fi
 
 # Run collectstatics
-python manage.py collectstatic  --noinput --no-post-process
+python manage.py collectstatic  --noinput --no-post-process -v0
 
 # Run syncdb and South migratios
-python manage.py syncdb --noinput
-python manage.py migrate
+python manage.py syncdb --noinput -v0
+python manage.py migrate -v0
 
 # HACK: if run from Docker, start redis
 if [ "$RUNNING_IN_DOCKER" != "" ] ; then
@@ -40,8 +40,8 @@ uwsgi \
     --master \
     --processes=${UWSGI_PROCESSES:-5} --enable-threads \
     --home=${VIRTUAL_ENV} \
-    --http=${UWSGI_HTTP:-0.0.0.0:8077} \
-    --uwsgi-socket=0.0.0.0:8099 \
+    --http=${SMOKE_UWSGI_HTTP:-0.0.0.0:8077} \
+    --uwsgi-socket=${SMOKE_UWSGI_SOCKET:-0.0.0.0:8099} \
     --python-path=${BASEDIR} \
     --master-fifo=/tmp/.datatsunami-sparkui-uwsgi-fifo \
     $STATIC_MAP \

@@ -44,6 +44,14 @@ Smoke is developed and tested with:
 * Ubuntu 14.04
 
 
+## FAQ
+
+###### Make uWSGI listen in other address/port
+
+Use the environment variable `SMOKE_UWSGI_HTTP`. For example:
+
+    $ env SMOKE_UWSGI_HTTP=127.0.0.1:7777 ./run_uwsgi.sh
+
 ## Next steps
 
 * Load Spark results on IPython Notebook
