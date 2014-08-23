@@ -1,5 +1,4 @@
-Smoke - Web interface for Spark
-===============================
+# Smoke - Web interface for Spark
 
 Web interface to execute Scala jobs in Spark.
 
@@ -7,8 +6,30 @@ Requires passwordless connection to the cluster using `ssh` (for launching the j
 
 ![Architecture](/architecture.png?raw=true)
 
-Configuration
--------------
+
+## Download and run
+
+###### Step 1: Clone this repo and enter into it
+
+    $ git clone https://github.com/data-tsunami/smoke
+    $ cd smoke
+
+###### Step 2: Create the virtualenv and install requirements.txt
+
+    $ virtualenv -p python2.7 virtualenv
+    $ ./virtualenv/bin/pip install -r requirements.txt
+
+###### Step 3: Configure (see the next section)
+
+    $ cp web_settings_local_SAMPLE.py web_settings_local.py
+    $ vim web_settings_local.py
+
+###### Step 4: Run:
+
+    $ ./run_uwsgi.sh
+
+
+### Configuration
 
 * `SSH_BASE_ARGS`: this should be an array with the commands and arguments to connect
   to the server. That server must have Spark installed and `spark-shell` working.
@@ -19,22 +40,22 @@ Example:
         "hadoop@cluster-master.hadoop.dev.docker.data-tsunami.com"]
 
 
-Requires
---------
+## Requires
 
 * Python 2.7
 * Hadoop 2.4.1
 * Spark 1.0.2
 
-Next steps
-----------
+
+## Next steps
 
 * Load Spark results on IPython Notebook
 * Kill running jobs
 * Better integratoin with Yarn API
 
-TODO
-----
+
+## TODO
+
 
 * Add utilities
 * Refactor parser of console output
@@ -44,8 +65,8 @@ TODO
 * Docker: use non-root user
 * Docker: mount SQlite database in volume
 
-Licence
--------
+
+## Licence
 
     #===============================================================================
     #    SparkUI - Launch Spark jobs from the web
