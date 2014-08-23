@@ -19,7 +19,7 @@ Requires passwordless connection to the cluster using `ssh` (for launching the j
     $ virtualenv -p python2.7 virtualenv
     $ ./virtualenv/bin/pip install -r requirements.txt
 
-###### Step 3: Configure (see the next section)
+###### Step 3: Configure (you'll find the instructions in web_settings_local_SAMPLE.py)
 
     $ cp web_settings_local_SAMPLE.py web_settings_local.py
     $ vim web_settings_local.py
@@ -28,23 +28,20 @@ Requires passwordless connection to the cluster using `ssh` (for launching the j
 
     $ ./run_uwsgi.sh
 
+This script will run Django's `syncdb`, `migrate` and `collectstatic`. Then will start `uWSGI` and the `Celery` worker.
 
-### Configuration
-
-* `SSH_BASE_ARGS`: this should be an array with the commands and arguments to connect
-  to the server. That server must have Spark installed and `spark-shell` working.
-
-Example:
-
-    SSH_BASE_ARGS = ["ssh", "-o", "StrictHostKeyChecking=no",
-        "hadoop@cluster-master.hadoop.dev.docker.data-tsunami.com"]
+Go to [http://localhost:8077/](http://localhost:8077/) and enjoy!
 
 
-## Requires
+## Requirements
+
+Smoke is developed and tested with:
 
 * Python 2.7
 * Hadoop 2.4.1
 * Spark 1.0.2
+* Redis
+* Ubuntu 14.04
 
 
 ## Next steps
