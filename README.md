@@ -52,7 +52,7 @@ Use the environment variable `SMOKE_UWSGI_HTTP`. For example:
 
     $ env SMOKE_UWSGI_HTTP=127.0.0.1:7777 ./run_uwsgi.sh
 
-##### Cannot connect to redis://127.0.0.1:6379/4: Error 111 connecting to 127.0.0.1:6379. Connection refused..
+###### Cannot connect to redis://127.0.0.1:6379/4
 
 You get a lot of this in your console:
 
@@ -64,6 +64,9 @@ Install and start Redis! On Ubuntu 14.04, you must run:
     $ sudo apt-get install -y redis-server
     $ sudo service redis-server start
 
+###### Run in Docker
+
+If you are brave enough, see instructions at [Dockerfile!](Dockerfile).
 
 ## Next steps
 
@@ -75,12 +78,11 @@ Install and start Redis! On Ubuntu 14.04, you must run:
 ## TODO
 
 
-* Add utilities
+* Add Scala utilities
 * Refactor parser of console output
 * Refactor actions to reuse code
 * Evaluate paramiko instead of Popen + ssh. See: http://www.paramiko.org/
 * Evaluate 'load'. See: https://github.com/apache/spark/blob/master/repl/src/main/scala/org/apache/spark/repl/SparkILoop.scala
-* Docker: use non-root user
 * Docker: mount SQlite database in volume
 
 
