@@ -17,7 +17,7 @@ def index(request):
     job_id = request.GET.get('restore_job_id', None)
     if job_id:
         context['script'] = Job.objects.get(id=job_id).script
-    return render(request, 'index.html', context)
+    return render(request, 'smoke/index.html', context)
 
 
 @ensure_csrf_cookie
@@ -31,7 +31,7 @@ def post_job(request):
 
 
 class JobListView(ListView):
-    template_name = "job_list.html"
+    template_name = "smoke/job_list.html"
     model = Job
 
     def get_queryset(self):
@@ -39,5 +39,5 @@ class JobListView(ListView):
 
 
 class JobDetailView(DetailView):
-    template_name = "job_details.html"
+    template_name = "smoke/job_details.html"
     model = Job
