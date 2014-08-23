@@ -44,13 +44,26 @@ Smoke is developed and tested with:
 * Ubuntu 14.04
 
 
-## FAQ
+## FAQ and troubleshooting
 
 ###### Make uWSGI listen in other address/port
 
 Use the environment variable `SMOKE_UWSGI_HTTP`. For example:
 
     $ env SMOKE_UWSGI_HTTP=127.0.0.1:7777 ./run_uwsgi.sh
+
+##### Cannot connect to redis://127.0.0.1:6379/4: Error 111 connecting to 127.0.0.1:6379. Connection refused..
+
+You get a lot of this in your console:
+
+    [2014-08-22 23:44:02,232: ERROR/MainProcess] consumer: Cannot connect to redis://127.0.0.1:6379/4: Error 111 connecting to 127.0.0.1:6379. Connection refused..
+    Trying again in 2.00 seconds...
+
+Install and start Redis! On Ubuntu 14.04, you must run:
+
+    $ sudo apt-get install -y redis-server
+    $ sudo service redis-server start
+
 
 ## Next steps
 
