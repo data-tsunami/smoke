@@ -6,8 +6,7 @@
 #        to the 'ssh-keys' directory (I know, it's ugly! Please
 #        tell me if you know a better way)
 #
-#    2) create 'web_settings_local.py' (see web_settings_local_example.py)
-#        and setup at least 'SSH_BASE_ARGS'
+#    2) create 'web_settings_local.py'
 #
 #    3) build the Docker image:
 #
