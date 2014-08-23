@@ -4,12 +4,14 @@ from __future__ import unicode_literals
 
 from django.http.response import HttpResponse
 from django.shortcuts import render
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import ListView
 from django.views.generic.detail import DetailView
 from web import tasks
 from web.models import Job
 
 
+@ensure_csrf_cookie
 def index(request):
     context = {}
     job_id = request.GET.get('restore_job_id', None)
@@ -18,6 +20,7 @@ def index(request):
     return render(request, 'index.html', context)
 
 
+@ensure_csrf_cookie
 def post_job(request):
     if request.method == 'POST':
         script = request.POST['script']
