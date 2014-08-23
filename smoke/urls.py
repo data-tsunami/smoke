@@ -1,6 +1,6 @@
 from django.conf.urls import patterns, include, url
 from django.contrib import admin
-from web import views
+from smoke import views
 
 
 admin.autodiscover()

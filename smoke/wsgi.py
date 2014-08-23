@@ -14,7 +14,7 @@ from django.conf import settings
 from ws4redis.uwsgi_runserver import uWSGIWebsocketServer
 
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "web.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "smoke.settings")
 
 
 # application = get_wsgi_application()

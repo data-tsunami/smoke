@@ -7,8 +7,8 @@ from __future__ import unicode_literals
 
 import logging
 
-from web import celery_app
-from web.spark_job import SparkService, MessageService
+from smoke import celery_app
+from smoke.spark_job import SparkService, MessageService
 
 
 logger = logging.getLogger(__name__)

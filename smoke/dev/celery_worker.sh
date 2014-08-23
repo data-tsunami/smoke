@@ -2,10 +2,10 @@
 
 NAME="spark_job"
 
-export DJANGO_SETTINGS_MODULE=web.settings
+export DJANGO_SETTINGS_MODULE=smoke.settings
 
 celery \
-	-A web.celery_app.app \
+	-A smoke.celery_app.app \
         -Q ${NAME} \
 	--no-color \
 	--loglevel=info \

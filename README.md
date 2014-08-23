@@ -19,10 +19,10 @@ Looking for **screenshots**? See at the bottom of the page.
     $ virtualenv -p python2.7 virtualenv
     $ ./virtualenv/bin/pip install -r requirements.txt
 
-###### Step 3: Configure (you'll find the instructions in web_settings_local_SAMPLE.py)
+###### Step 3: Configure (you'll find the instructions in smoke_settings_local_SAMPLE.py)
 
-    $ cp web_settings_local_SAMPLE.py web_settings_local.py
-    $ vim web_settings_local.py
+    $ cp smoke_settings_local_SAMPLE.py smoke_settings_local.py
+    $ vim smoke_settings_local.py
 
 ###### Step 4: Run:
 

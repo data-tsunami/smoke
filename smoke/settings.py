@@ -38,7 +38,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'south',
     'ws4redis',
-    'web',
+    'smoke',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -61,9 +61,9 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     "ws4redis.context_processors.default",
 )
 
-ROOT_URLCONF = 'web.urls'
+ROOT_URLCONF = 'smoke.urls'
 
-WSGI_APPLICATION = 'web.wsgi.application'
+WSGI_APPLICATION = 'smoke.wsgi.application'
 WSGI_APPLICATION = 'ws4redis.django_runserver.application'
 
 # Database
@@ -98,7 +98,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media_root')
 # Django
 #==============================================================================
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'web', 'dev', 'static_root')
+STATIC_ROOT = os.path.join(BASE_DIR, 'smoke', 'dev', 'static_root')
 
 LOGGING = {
     'version': 1,
@@ -190,19 +190,19 @@ REMOTE_SPARK_SHELL_PATH_OPTS = ""
 """Options for the spark-shell command executed on the server"""
 
 #==============================================================================
-# Import de `web_settings_local`
+# Import de `smoke_settings_local`
 #==============================================================================
 
 try:
-    from web_settings_local import *
+    from smoke_settings_local import *
 except ImportError as e:
     print "# "
     print "# ERROR"
     print "# "
     print "#   Couldn't import module"
-    print "#       `web_settings_local`"
+    print "#       `smoke_settings_local`"
     print "# "
-    raise Exception("Couldn't import module web_settings_local")
+    raise Exception("Couldn't import module smoke_settings_local")
 
 assert SSH_BASE_ARGS is not None, \
-    "SSH_BASE_ARGS must be defined, check your 'web_settings_local.py' file"
+    "SSH_BASE_ARGS must be defined, check your 'smoke_settings_local.py' file"

@@ -26,7 +26,7 @@ class Migration(SchemaMigration):
 
 
     models = {
-        u'web.job': {
+        u'smoke.job': {
             'Meta': {'object_name': 'Job'},
             'end': ('django.db.models.fields.DateTimeField', [], {}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),

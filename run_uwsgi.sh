@@ -13,7 +13,7 @@ fi
 
 # Serve static contents
 if [ -z "$DISABLE_STATIC_MAP" ] ; then
-	STATIC_MAP="--static-map /static=${BASEDIR}/web/dev/static_root"
+	STATIC_MAP="--static-map /static=${BASEDIR}/smoke/dev/static_root"
 	echo "Using static map arguments: $STATIC_MAP"
 else
 	echo "Running without --static-map."
@@ -34,8 +34,8 @@ fi
 
 # Launch uWSGI
 uwsgi \
-    --module=web.wsgi:application \
-    --env DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-web.settings} \
+    --module=smoke.wsgi:application \
+    --env DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-smoke.settings} \
     $EXTRA_ENV \
     --master \
     --processes=${UWSGI_PROCESSES:-5} --enable-threads \
@@ -47,5 +47,5 @@ uwsgi \
     $STATIC_MAP \
     --gevent 100 \
     --http-websockets \
-    --attach-daemon=${BASEDIR}/web/dev/celery_worker.sh \
+    --attach-daemon=${BASEDIR}/smoke/dev/celery_worker.sh \
     $*

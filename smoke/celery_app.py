@@ -11,7 +11,7 @@ from django.conf import settings
 import logging as _logging
 
 
-logger = _logging.getLogger('web.celery_app')
+logger = _logging.getLogger('smoke.celery_app')
 
 app = Celery('tasks')
 
@@ -21,7 +21,7 @@ app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 
 app.conf.update(
     CELERY_ROUTES={
-        'web.tasks.spark_job': {
+        'smoke.tasks.spark_job': {
             'queue': 'spark_job'
         },
     },

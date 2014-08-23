@@ -9,7 +9,7 @@ import subprocess
 
 from django.conf import settings
 from django.utils import timezone
-from web.models import Job
+from smoke.models import Job
 from ws4redis.publisher import RedisPublisher
 from ws4redis.redis_store import RedisMessage
 from xml.dom.minidom import parseString

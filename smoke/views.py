@@ -7,8 +7,8 @@ from django.shortcuts import render
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import ListView
 from django.views.generic.detail import DetailView
-from web import tasks
-from web.models import Job
+from smoke import tasks
+from smoke.models import Job
 
 
 @ensure_csrf_cookie

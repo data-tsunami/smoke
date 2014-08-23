@@ -1,6 +1,6 @@
 *.pyc
 *~
-/web/dev/static_root
+/smoke/dev/static_root
 /db.sqlite3
-/web_settings_local.py
+/smoke_settings_local.py
 /ssh-keys

@@ -6,7 +6,7 @@
 #        to the 'ssh-keys' directory (I know, it's ugly! Please
 #        tell me if you know a better way)
 #
-#    2) create 'web_settings_local.py'
+#    2) create 'smoke_settings_local.py'
 #
 #    3) build the Docker image:
 #
@@ -44,9 +44,9 @@ RUN /home/smoke/virtualenv/bin/pip install -r /home/smoke/requirements.txt
 
 ADD manage.py /home/smoke/manage.py
 ADD run_uwsgi.sh /home/smoke/run_uwsgi.sh
-ADD web /home/smoke/web
+ADD smoke /home/smoke/smoke
 
-ADD web_settings_local.py /home/smoke/web_settings_local.py
+ADD smoke_settings_local.py /home/smoke/smoke_settings_local.py
 
 RUN cd /home/smoke ; \
     /home/smoke/virtualenv/bin/python manage.py syncdb --noinput ; \
