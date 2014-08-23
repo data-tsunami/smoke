@@ -124,7 +124,7 @@ If you are brave enough, see instructions at [Dockerfile!](Dockerfile).
 ![Job history](/screenshot-06-job-history.png?raw=true)
 
 
-## Licence
+## Licence: GPLv3
 
     #===============================================================================
     #    Smoke - Launch Spark jobs from the web
