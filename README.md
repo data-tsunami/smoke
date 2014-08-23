@@ -1,5 +1,5 @@
-Spark UI
-========
+Smoke - Web interface for Spark
+===============================
 
 Web interface to execute Scala jobs in Spark.
 
