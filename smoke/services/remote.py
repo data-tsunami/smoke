@@ -8,16 +8,62 @@ import subprocess
 from django.conf import settings
 from smoke.services.parsers import ApplicationMasterLaunchedParser, \
     TaskFinishedWithProgressParser, MessageFromShellParser
+import warnings
 
 
 logger = logging.getLogger(__name__)
 
 
-class MkTemp(object):
+class BaseRemoteCommand(object):
+    """Base class for remote commands"""
 
     def __init__(self, message_service, cookie):
         self.message_service = message_service
         self.cookie = cookie
+
+        self.line_parsers = (
+            ApplicationMasterLaunchedParser(self.message_service, self.cookie),
+            TaskFinishedWithProgressParser(self.message_service, self.cookie),
+            MessageFromShellParser(self.message_service, self.cookie),
+        )
+
+    def _send_line(self, line, **kwargs):
+        warnings.warn("REMOVE BaseRemoteCommand._send_line()")
+        return self.message_service.publish_message(line, **kwargs)
+
+    def _process_line(self, cookie, subline):
+        """Process a line of the spark-shell output."""
+
+        # At this point, 'subline' was logged (ie: will appear
+        #  on celery worker console or log file
+
+        for parser in self.line_parsers:
+
+            try:
+                handled = parser.parse(subline)
+                if handled:
+                    return
+
+            except Exception as e:
+                logger.exception("Exception detected when handling")
+
+                self.message_service.log_and_publish("Exception detected when "
+                                                     "handling line: %s", e,
+                                                     errorLine=True)
+
+                # TODO: the previouws line must be logged as error
+
+        #------------------------------------------------------------
+        # It's a normal, plain line. Any parser handled the line
+        #------------------------------------------------------------
+        self._send_line(line=subline, lineIsFromRemoteOutput=True)
+        return
+
+
+class MkTemp(BaseRemoteCommand):
+
+    def __init__(self, message_service, cookie):
+        super(MkTemp, self).__init__(message_service, cookie)
 
     def mktemp(self):
         """Creates a temporary file on the remote server"""
@@ -73,12 +119,10 @@ class MkTemp(object):
         return temp_file
 
 
-class SendScript(object):
+class SendScript(BaseRemoteCommand):
 
     def __init__(self, message_service, cookie):
-        self.message_service = message_service
-        self.cookie = cookie
-
+        super(SendScript, self).__init__(message_service, cookie)
         self.mktemp_service = MkTemp(message_service, cookie)
 
     def send_script(self, script):
@@ -132,44 +176,10 @@ class SendScript(object):
         return temp_file
 
 
-class RunSparkShell(object):
+class RunSparkShell(BaseRemoteCommand):
 
     def __init__(self, message_service, cookie):
-        self.message_service = message_service
-        self.cookie = cookie
-
-        self.line_parsers = (
-            ApplicationMasterLaunchedParser(self.message_service, self.cookie),
-            TaskFinishedWithProgressParser(self.message_service, self.cookie),
-            MessageFromShellParser(self.message_service, self.cookie),
-        )
-
-    def _process_line(self, cookie, subline):
-        """Process a line of the spark-shell output."""
-
-        # At this point, 'subline' was logged (ie: will appear
-        #  on celery worker console or log file
-
-        for parser in self.line_parsers:
-
-            try:
-                handled = parser(subline)
-                if handled:
-                    return
-
-            except Exception as e:
-                logger.exception()
-
-                self._log_and_publish("Exception detected when handling "
-                                      "line: %s", e, errorLine=True)
-
-                # TODO: the previouws line must be logged as error
-
-        #------------------------------------------------------------
-        # It's a normal, plain line. Any parser handled the line
-        #------------------------------------------------------------
-        self._send_line(line=subline, lineIsFromRemoteOutput=True)
-        return
+        super(RunSparkShell, self).__init__(message_service, cookie)
 
     def run_spark_shell(self, script_path):
         """Ejecuta script spark en servidor.
@@ -246,11 +256,10 @@ class RunSparkShell(object):
         return p.returncode
 
 
-class Cat(object):
+class Cat(BaseRemoteCommand):
 
     def __init__(self, message_service, cookie):
-        self.message_service = message_service
-        self.cookie = cookie
+        super(Cat, self).__init__(message_service, cookie)
 
     def run_cat(self, script_path):
         """Does a 'cat' of the script on the server.
@@ -313,11 +322,10 @@ class Cat(object):
         return p.returncode
 
 
-class Echo(object):
+class Echo(BaseRemoteCommand):
 
     def __init__(self, message_service, cookie):
-        self.message_service = message_service
-        self.cookie = cookie
+        super(Echo, self).__init__(message_service, cookie)
 
     def remote_echo(self):
         """Does a 'echo pong' on the server.
