@@ -7,7 +7,6 @@ import uuid
 from django.test import TestCase
 from smoke.services.parsers import ApplicationMasterLaunchedParser, \
     TaskFinishedWithProgressParser, MessageFromShellParser
-import pprint
 
 GENERAL_INVALID_LINES = (
 
@@ -49,9 +48,12 @@ class TestApplicationMasterLaunchedParser(TestCase):
         msg_service = MessageServiceMock()
         parser = ApplicationMasterLaunchedParser(msg_service, cookie)
 
-        # TODO: get real line from real execution to test this
-        LINE = ("xxx xxx INFO yarn.Client: Command for "
-                "starting the Spark ApplicationMaster")
+        LINE = ("14/09/13 12:22:52 INFO yarn.Client: Command for starting "
+                "the Spark ApplicationMaster: List($JAVA_HOME/bin/java, "
+                "-server, -Xmx512m, -Djava.io.tmpdir=$PWD/tmp, "
+                "--executor-memory, 1024, --executor-cores, 2, "
+                "--num-executors , 2, 1>, <LOG_DIR>/stdout, 2>, "
+                "<LOG_DIR>/stderr)")
 
         for invalid_line in GENERAL_INVALID_LINES:
             self.assertFalse(parser.parse(invalid_line))
