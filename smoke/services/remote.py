@@ -27,7 +27,9 @@ class BaseRemoteCommand(object):
         )
 
     def _process_incoming_line(self, cookie, subline):
-        """Process a line of the spark-shell output."""
+        """Process a line of the spark-shell output.
+        Pass the line to each of the existing parsers
+        """
 
         # At this point, 'subline' was logged (ie: will appear
         #  on celery worker console or log file
@@ -54,7 +56,7 @@ class BaseRemoteCommand(object):
         return
 
     def _popen(self, *args, **kwargs):
-        """Executes subprocess.Popen + communicate()
+        """Executes subprocess.Popen
 
         :returns: process
         """
@@ -105,8 +107,35 @@ class BaseRemoteCommand(object):
             raise(Exception("{0}: process.communicate() failed".format(
                 self.__class__.__name__)))
 
+    def _check_exit_status(self, process, stdout_data, stderr_data):
+
+        if process.returncode == 0:
+            return
+
+        self.message_service.publish_message(
+            line="ERROR: {0} failed! Exit status: {1}".format(
+                self.__class__.__name__, process.returncode))
+        self.message_service.publish_message(line="===== STDOUT =====")
+        for line in stdout_data.splitlines():
+            self.message_service.publish_message(line=line)
+        self.message_service.publish_message(line="===== STDERR =====")
+        for line in stderr_data.splitlines():
+            self.message_service.publish_message(line=line)
+
+        logger.error("{0}: exit status != 0.".format(self.__class__.__name__))
+        logger.error("{0}: exit status: %s".format(self.__class__.__name__),
+                     process.returncode)
+        logger.error("{0}: STDOUT: %s".format(self.__class__.__name__),
+                     stdout_data)
+        logger.error("{0}: STDERR: %s".format(self.__class__.__name__),
+                     stderr_data)
+
+        raise(Exception("{0}: exit status != 0"
+                        "".format(self.__class__.__name__)))
+
 
 class MkTemp(BaseRemoteCommand):
+    """Remote command to create a temporary file"""
 
     def __init__(self, message_service, cookie):
         super(MkTemp, self).__init__(message_service, cookie)
@@ -125,23 +154,7 @@ class MkTemp(BaseRemoteCommand):
             stderr=subprocess.PIPE
         )
 
-        if proc.returncode != 0:
-            self.message_service.publish_message(
-                line="ERROR: mktemp failed! Exit status: {0}".format(
-                    proc.returncode))
-            self.message_service.publish_message(line="===== STDOUT =====")
-            for line in stdout_data.splitlines():
-                self.message_service.publish_message(line=line)
-            self.message_service.publish_message(line="===== STDERR =====")
-            for line in stderr_data.splitlines():
-                self.message_service.publish_message(line=line)
-
-            logger.error("_mktemp(): exit status != 0.")
-            logger.error("_mktemp(): exit status: %s", proc.returncode)
-            logger.error("_mktemp(): STDOUT: %s", stdout_data)
-            logger.error("_mktemp(): STDERR: %s", stderr_data)
-
-            raise(Exception("_mktemp(): exit status != 0"))
+        self._check_exit_status(proc, stdout_data, stderr_data)
 
         temp_file = stdout_data.splitlines()[0].strip()
         if not len(temp_file):
@@ -178,25 +191,7 @@ class SendScript(BaseRemoteCommand):
             std_input=script
         )
 
-        if proc.returncode != 0:
-            self.message_service.publish_message(
-                line="ERROR: couldn't send script! Exit status: {0}".format(
-                    proc.returncode)
-            )
-
-            self.message_service.publish_message(line="===== STDOUT =====")
-            for line in stdout_data.splitlines():
-                self.message_service.publish_message(line=line)
-            self.message_service.publish_message(line="===== STDERR =====")
-            for line in stderr_data.splitlines():
-                self.message_service.publish_message(line=line)
-
-            logger.error("send_script(): exit status != 0.")
-            logger.error("send_script(): exit status: %s", proc.returncode)
-            logger.error("send_script(): STDOUT: %s", stdout_data)
-            logger.error("send_script(): STDERR: %s", stderr_data)
-
-            raise(Exception("send_script(): exit status != 0"))
+        self._check_exit_status(proc, stdout_data, stderr_data)
 
         self.message_service.log_and_publish("Script contents were sent "
                                              "successfully")
@@ -235,7 +230,6 @@ class RunSparkShell(BaseRemoteCommand):
         ARGS = settings.SSH_BASE_ARGS + ["env",
                                          "DATATSUNAMI_COOKIE=" + self.cookie,
                                          "sh", "-c", REMOTE_COMMAND]
-        self.message_service.log_and_publish("subprocess.Popen(%s)", ARGS)
 
         p = self._popen(ARGS, stdout=subprocess.PIPE)
 
