@@ -53,19 +53,23 @@ class BaseRemoteCommand(object):
                                              lineIsFromRemoteOutput=True)
         return
 
-    def _popen_and_communicate(self, args, std_input=None):
-        """Executes subprocess.Popen.
+    def _popen(self, *args, **kwargs):
+        """Executes subprocess.Popen + communicate()
 
-        :returns: process, stdout_data, stderr_data
+        :returns: process
         """
-        self.message_service.log_and_publish("subprocess.Popen(%s)", args)
+
+        self.message_service.log_and_publish(
+            "{0}: subprocess.Popen(%s)".format(self.__class__.__name__),
+            args
+        )
 
         try:
-            p = subprocess.Popen(args, stdout=subprocess.PIPE,
-                                 stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+            process = subprocess.Popen(*args, **kwargs)
+            return process
         except:
             self.message_service.publish_message(
-                line="{0}: subprocess.Popen() failed".format(
+                line="{0}: Popen() failed".format(
                     self.__class__.__name__))
             self.message_service.publish_message(
                 line="{0}:  + SSH_CMD: '{1}'"
@@ -73,8 +77,20 @@ class BaseRemoteCommand(object):
             self.message_service.publish_message(
                 line="{0}:  + ARGS: '{1}'".format(self.__class__.__name__,
                                                   args))
-            raise(Exception("{0}: subprocess.Popen() failed".format(
+            raise(Exception("{0}: Popen() failed".format(
                 self.__class__.__name__)))
+
+    def _popen_and_communicate(self, *args, **kwargs):
+        """Executes subprocess.Popen + communicate()
+
+        :param std_input: contents to send to subprocess STDIN
+
+        :returns: process, stdout_data, stderr_data
+        """
+
+        std_input = kwargs.pop('std_input', None)
+
+        p = self._popen(*args, **kwargs)
 
         try:
             stdout_data, stderr_data = p.communicate(input=std_input)
@@ -84,9 +100,9 @@ class BaseRemoteCommand(object):
             logger.exception("%s: process.communicate() failed",
                              self.__class__.__name__)
             self.message_service.publish_message(
-                line="{0}: p.communicate() failed".format(
+                line="{0}: process.communicate() failed".format(
                     self.__class__.__name__))
-            raise(Exception("{0}: p.communicate() failed".format(
+            raise(Exception("{0}: process.communicate() failed".format(
                 self.__class__.__name__)))
 
 
@@ -103,7 +119,11 @@ class MkTemp(BaseRemoteCommand):
                                          "spark-job-script-XXXXXXXXXX",
                                          "--suffix=.scala"]
 
-        proc, stdout_data, stderr_data = self._popen_and_communicate(ARGS)
+        proc, stdout_data, stderr_data = self._popen_and_communicate(
+            ARGS,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
 
         if proc.returncode != 0:
             self.message_service.publish_message(
@@ -151,12 +171,19 @@ class SendScript(BaseRemoteCommand):
         ARGS = settings.SSH_BASE_ARGS + ["cat > {0}".format(temp_file)]
 
         proc, stdout_data, stderr_data = self._popen_and_communicate(
-            ARGS, std_input=script)
+            ARGS,
+            stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            std_input=script
+        )
 
         if proc.returncode != 0:
-            self.message_service.publish_message(line="ERROR: couldn't send "
-                                                 "script! "
-                       "Exit status: {0}".format(proc.returncode))
+            self.message_service.publish_message(
+                line="ERROR: couldn't send script! Exit status: {0}".format(
+                    proc.returncode)
+            )
+
             self.message_service.publish_message(line="===== STDOUT =====")
             for line in stdout_data.splitlines():
                 self.message_service.publish_message(line=line)
@@ -210,18 +237,7 @@ class RunSparkShell(BaseRemoteCommand):
                                          "sh", "-c", REMOTE_COMMAND]
         self.message_service.log_and_publish("subprocess.Popen(%s)", ARGS)
 
-        try:
-            p = subprocess.Popen(ARGS, stdout=subprocess.PIPE)
-        except:
-            self.message_service.publish_message(line="_remote_spark_shell(): "
-                            "subprocess.Popen() failed")
-            self.message_service.publish_message(line="_remote_spark_shell(): "
-                            " + SSH_BASE_ARGS: '{0}'"
-                            "".format(settings.SSH_BASE_ARGS))
-            self.message_service.publish_message(line="_remote_spark_shell(): "
-                            " + ARGS: '{0}'".format(ARGS))
-            raise(Exception("_remote_spark_shell(): "
-                            "subprocess.Popen() failed"))
+        p = self._popen(ARGS, stdout=subprocess.PIPE)
 
         first_line = True
         while True:
@@ -277,18 +293,7 @@ class Cat(BaseRemoteCommand):
         ARGS = settings.SSH_BASE_ARGS + ["cat", script_path]
         self.message_service.log_and_publish("subprocess.Popen(%s)", ARGS)
 
-        try:
-            p = subprocess.Popen(ARGS, stdout=subprocess.PIPE)
-        except:
-            self.message_service.publish_message(line="_remote_cat(): "
-                            "subprocess.Popen() failed")
-            self.message_service.publish_message(line="_remote_cat(): "
-                            " + SSH_BASE_ARGS: '{0}'"
-                            "".format(settings.SSH_BASE_ARGS))
-            self.message_service.publish_message(line="_remote_cat(): "
-                            " + ARGS: '{0}'".format(ARGS))
-            raise(Exception("_remote_cat(): "
-                            "subprocess.Popen() failed"))
+        p = self._popen(ARGS, stdout=subprocess.PIPE)
 
         first_line = True
         while True:
@@ -296,7 +301,7 @@ class Cat(BaseRemoteCommand):
             for subline in [sl.rstrip()
                             for sl in line.splitlines() if sl.strip()]:
 
-                logger.info("remote_cat> %s", subline)
+                logger.info("cat> %s", subline)
 
                 if first_line:
                     first_line = False
@@ -343,18 +348,7 @@ class Echo(BaseRemoteCommand):
         ARGS = settings.SSH_BASE_ARGS + ["echo", "pong"]
         self.message_service.log_and_publish("subprocess.Popen(%s)", ARGS)
 
-        try:
-            p = subprocess.Popen(ARGS, stdout=subprocess.PIPE)
-        except:
-            self.message_service.publish_message(line="_remote_echo(): "
-                            "subprocess.Popen() failed")
-            self.message_service.publish_message(line="_remote_echo(): "
-                            " + SSH_BASE_ARGS: '{0}'"
-                            "".format(settings.SSH_BASE_ARGS))
-            self.message_service.publish_message(line="_remote_echo(): "
-                            " + ARGS: '{0}'".format(ARGS))
-            raise(Exception("_remote_echo(): "
-                            "subprocess.Popen() failed"))
+        p = self._popen(ARGS, stdout=subprocess.PIPE)
 
         first_line = True
         while True:
@@ -362,7 +356,7 @@ class Echo(BaseRemoteCommand):
             for subline in [sl.rstrip()
                             for sl in line.splitlines() if sl.strip()]:
 
-                logger.info("remote_echo> %s", subline)
+                logger.info("echo> %s", subline)
 
                 if first_line:
                     first_line = False
