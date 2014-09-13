@@ -3,69 +3,20 @@
 from __future__ import unicode_literals
 
 import logging
-import re
 import subprocess
 import uuid
-from xml.dom.minidom import parseString
 
 from django.conf import settings
 from django.utils import timezone
 from smoke.models import Job
 from smoke.services.messages import MessageService
+from smoke.services.parsers import ApplicationMasterLaunchedParser, \
+    TaskFinishedWithProgressParser, MessageFromShellParser
 
 
 logger = logging.getLogger(__name__)
 
 SSH_BASE_ARGS = settings.SSH_BASE_ARGS
-
-RE_APPLICATION_MASTER_LAUNCHED = re.compile(r"^\S+\s\S+\sINFO\s"
-                                            "yarn\.Client:\sCommand\sfor\s"
-                                            "starting\sthe\sSpark\s"
-                                            "ApplicationMaster")
-"""14/08/19 16:07:31 INFO yarn.Client: \
-   Command for starting the Spark ApplicationMaster: \
-   List(...)
-"""
-
-RE_TASK_FINISHED_WITH_PROGRESS = re.compile(r""
-                                            "^.*"
-                                            "INFO\s+"
-                                            "scheduler\.TaskSetManager:\s+"
-                                            "Finished\s+TID\s+"
-                                            "(\d+)\s+"
-                                            "in\s+"
-                                            "(\d+)\s+"
-                                            "ms\s+"
-                                            "on\s+"
-                                            "(.+)\s+"
-                                            "\("
-                                            "progress:\s+"
-                                            "(\d+)/(\d+)"
-                                            "\)"
-                                            )
-""" 14/08/19 17:02:15 INFO scheduler.TaskSetManager: \
-    Finished TID 24 in 3386 ms on xxxxxxxxx (progress: 26/70)
-"""
-
-RE_MESSAGE_FROM_SHELL = re.compile(r"^@@(.+)@@$")
-
-
-def _test_regexes():
-    test_line = "17:13:44 INFO scheduler.TaskSetManager: Finished TID " + \
-        "9 in 11050 ms on hadoop3-touro1tb.hadoop.dev.docker." + \
-        "data-tsunami.com (progress: 10/10)"
-    match = RE_TASK_FINISHED_WITH_PROGRESS.search(test_line)
-    assert match, "RE_TASK_FINISHED_WITH_PROGRESS FALLO"
-    tid_id = match.group(1)
-    took = match.group(2)
-    host = match.group(3)
-    progress_done = match.group(4)
-    progress_total = match.group(5)
-
-    int(tid_id)
-    int(took)
-    int(progress_done)
-    int(progress_total)
 
 
 class SparkService(object):
@@ -73,7 +24,14 @@ class SparkService(object):
 
     def __init__(self, *args, **kwargs):
         super(SparkService, self).__init__(*args, **kwargs)
+
         self.message_service = MessageService()
+        self.cookie = uuid.uuid4().hex
+        self.line_parsers = (
+            ApplicationMasterLaunchedParser(self.message_service, self.cookie),
+            TaskFinishedWithProgressParser(self.message_service, self.cookie),
+            MessageFromShellParser(self.message_service, self.cookie),
+        )
 
     def _send_line(self, line, **kwargs):
         # FIMXE: remove or rename this!
@@ -129,7 +87,8 @@ class SparkService(object):
             raise(Exception("Temporary filename is empty"))
 
         self._log_and_publish("Temporary file: %s", temp_file)
-        #elf._send_line(line="Temporary file on server: {0}".format(temp_file))
+        # elf._send_line(
+        #    line="Temporary file on server: {0}".format(temp_file))
         return temp_file
 
     def _fix_script(self, script):
@@ -191,108 +150,23 @@ class SparkService(object):
         # At this point, 'subline' was logged (ie: will appear
         #  on celery worker console or log file
 
-        #------------------------------------------------------------
-        # RE_APPLICATION_MASTER_LAUNCHED
-        #------------------------------------------------------------
-        if RE_APPLICATION_MASTER_LAUNCHED.search(subline):
-            self._log_and_publish(subline,
-                                    lineIsFromRemoteOutput=True,
-                                    appMasterLaunched=True)
-            return
-
-        #------------------------------------------------------------
-        # RE_TASK_FINISHED_WITH_PROGRESS
-        #------------------------------------------------------------
-        progress_match = RE_TASK_FINISHED_WITH_PROGRESS.search(subline)
-        if progress_match:
-            # tid_id = progress_match.group(1)
-            # took = progress_match.group(2)
-            # host = progress_match.group(3)
-            progress_done = progress_match.group(4)
-            progress_total = progress_match.group(5)
-            self._log_and_publish(subline,
-                                    lineIsFromRemoteOutput=True,
-                                    progressUpdate=True,
-                                    progressDone=int(progress_done),
-                                    progressTotal=int(progress_total))
-            return
-
-        #------------------------------------------------------------
-        # RE_MESSAGE_FROM_SHELL
-        #------------------------------------------------------------
-        msg_from_shell = RE_MESSAGE_FROM_SHELL.search(subline)
-        if msg_from_shell:
-            maybe_xml = msg_from_shell.group(1)
+        for parser in self.line_parsers:
 
             try:
-                # FIXME: parseString() is insecure
-                root = parseString(maybe_xml)
-
-                cookie_from_xml = root.getElementsByTagName(
-                    'msgFromShell')[0].attributes['cookie'].value
-
-                # Check cookie
-                if cookie_from_xml != cookie:
-                    # BAD COOKIE!
-                    self._log_and_publish(
-                        "ERROR: cookies doesn't matches. "
-                        "Cookie: %s - From XML: %s",
-                        cookie,
-                        cookie_from_xml,
-                        lineIsFromRemoteOutput=True,
-                        errorLine=True)
-                    # TODO: the previouws line must be logged as error
+                handled = parser(subline)
+                if handled:
                     return
 
-                # Check <errorLine>
-                try:
-                    errors = root.getElementsByTagName('errorLine')
-                    assert errors
-                except:
-                    pass
-                else:
-                    for elem in errors:
-                        error_line = elem.firstChild.data.rstrip()
-                        self._log_and_publish(
-                            error_line,
-                            lineIsFromRemoteOutput=True,
-                            errorLine=True)
-                    return
-
-                # Check <outputFileName>
-                try:
-                    output_filename = root.getElementsByTagName(
-                        'outputFileName')[0].firstChild.data.strip()
-                except:
-                    pass
-                else:
-                    self._log_and_publish(
-                        subline,
-                        lineIsFromRemoteOutput=True,
-                        outputFilenameReported=output_filename)
-                    return
-
-                # UNKNOW <msgFromShell> TYPE
-                self._log_and_publish("ERROR: unknown type of line "
-                                          "from shell: %s",
-                                          subline,
-                                          errorLine=True)
-                # TODO: the previouws line must be logged as error
-                return
-
-            except BaseException as e:
+            except Exception as e:
                 logger.exception()
 
-                self._log_and_publish("Exception detected when "
-                                          "processing line "
-                                          "from shell: %s",
-                                          e,
-                                          errorLine=True)
+                self._log_and_publish("Exception detected when handling "
+                                      "line: %s", e, errorLine=True)
+
                 # TODO: the previouws line must be logged as error
-                return
 
         #------------------------------------------------------------
-        # It's a normal, plain line
+        # It's a normal, plain line. Any parser handled the line
         #------------------------------------------------------------
         self._send_line(line=subline, lineIsFromRemoteOutput=True)
         return
@@ -522,5 +396,3 @@ class SparkService(object):
         job.save()
 
         self._log_and_publish("Job saved: %s", job.id, savedJobId=job.id)
-
-_test_regexes()
