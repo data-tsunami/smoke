@@ -93,12 +93,12 @@ Being the firsts stage of development, security is't the main goal yet.
 
 ## TODO
 
+* ~~Refactor parser of console output~~
+* ~~Refactor actions to reuse code~~
 * Document and fix security issues!
 * Create a 'check' script, to be used to check configuration after install
 * Add Scala utilities to be used in scripts
 * Add pagination to job history
-* Refactor parser of console output
-* Refactor actions to reuse code
 * Evaluate paramiko instead of Popen + ssh. See: http://www.paramiko.org/
 * Evaluate 'load'. See: https://github.com/apache/spark/blob/master/repl/src/main/scala/org/apache/spark/repl/SparkILoop.scala
 * Docker: mount SQlite database in volume
