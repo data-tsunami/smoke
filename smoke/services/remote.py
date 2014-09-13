@@ -8,7 +8,6 @@ import subprocess
 from django.conf import settings
 from smoke.services.parsers import ApplicationMasterLaunchedParser, \
     TaskFinishedWithProgressParser, MessageFromShellParser
-import warnings
 
 
 logger = logging.getLogger(__name__)
@@ -26,10 +25,6 @@ class BaseRemoteCommand(object):
             TaskFinishedWithProgressParser(self.message_service, self.cookie),
             MessageFromShellParser(self.message_service, self.cookie),
         )
-
-    def _send_line(self, line, **kwargs):
-        warnings.warn("REMOVE BaseRemoteCommand._send_line()")
-        return self.message_service.publish_message(line, **kwargs)
 
     def _process_line(self, cookie, subline):
         """Process a line of the spark-shell output."""
@@ -56,7 +51,8 @@ class BaseRemoteCommand(object):
         #------------------------------------------------------------
         # It's a normal, plain line. Any parser handled the line
         #------------------------------------------------------------
-        self._send_line(line=subline, lineIsFromRemoteOutput=True)
+        self.message_service.publish_message(line=subline,
+                                             lineIsFromRemoteOutput=True)
         return
 
 
@@ -78,27 +74,32 @@ class MkTemp(BaseRemoteCommand):
             p = subprocess.Popen(ARGS, stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
         except:
-            self._send_line(line="_mktemp(): subprocess.Popen() failed")
-            self._send_line(line="_mktemp():  + SSH_CMD: '{0}'".format(
-                settings.SSH_BASE_ARGS))
-            self._send_line(line="_mktemp():  + ARGS: '{0}'".format(ARGS))
+            self.message_service.publish_message(
+                line="_mktemp(): subprocess.Popen() failed")
+            self.message_service.publish_message(
+                line="_mktemp():  + SSH_CMD: '{0}'".format(
+                    settings.SSH_BASE_ARGS))
+            self.message_service.publish_message(
+                line="_mktemp():  + ARGS: '{0}'".format(ARGS))
             raise(Exception("_mktemp(): subprocess.Popen() failed"))
 
         try:
             stdout_data, stderr_data = p.communicate()
         except:
-            self._send_line(line="_mktemp(): p.communicate() failed")
+            self.message_service.publish_message(
+                line="_mktemp(): p.communicate() failed")
             raise(Exception("_mktemp(): p.communicate() failed"))
 
         if p.returncode != 0:
-            self._send_line(line="ERROR: mktemp failed! "
-                            "Exit status: {0}".format(p.returncode))
-            self._send_line(line="===== STDOUT =====")
+            self.message_service.publish_message(
+                line="ERROR: mktemp failed! Exit status: {0}".format(
+                    p.returncode))
+            self.message_service.publish_message(line="===== STDOUT =====")
             for line in stdout_data.splitlines():
-                self._send_line(line=line)
-            self._send_line(line="===== STDERR =====")
+                self.message_service.publish_message(line=line)
+            self.message_service.publish_message(line="===== STDERR =====")
             for line in stderr_data.splitlines():
-                self._send_line(line=line)
+                self.message_service.publish_message(line=line)
 
             logger.error("_mktemp(): exit status != 0.")
             logger.error("_mktemp(): exit status: %s", p.returncode)
@@ -109,13 +110,11 @@ class MkTemp(BaseRemoteCommand):
 
         temp_file = stdout_data.splitlines()[0].strip()
         if not len(temp_file):
-            self._send_line(line="ERROR: mktemp:  failed! "
-                       "Temporary filename is empty")
+            self.message_service.publish_message(
+                line="ERROR: mktemp:  failed! Temporary filename is empty")
             raise(Exception("Temporary filename is empty"))
 
         self.message_service.log_and_publish("Temporary file: %s", temp_file)
-        # elf._send_line(
-        #    line="Temporary file on server: {0}".format(temp_file))
         return temp_file
 
 
@@ -141,27 +140,32 @@ class SendScript(BaseRemoteCommand):
             p = subprocess.Popen(ARGS, stdout=subprocess.PIPE,
                                  stdin=subprocess.PIPE, stderr=subprocess.PIPE)
         except:
-            self._send_line(line="_send_script(): subprocess.Popen() failed")
-            self._send_line(line="_send_script():  + SSH_CMD: '{0}'".format(
-                settings.SSH_BASE_ARGS))
-            self._send_line(line="_send_script():  + ARGS: '{0}'".format(ARGS))
+            self.message_service.publish_message(
+                line="_send_script(): subprocess.Popen() failed")
+            self.message_service.publish_message(
+                line="_send_script():  + SSH_CMD: '{0}'"
+                "".format(settings.SSH_BASE_ARGS))
+            self.message_service.publish_message(
+                line="_send_script():  + ARGS: '{0}'".format(ARGS))
             raise(Exception("_send_script(): subprocess.Popen() failed"))
 
         try:
             stdout_data, stderr_data = p.communicate(input=script)
         except:
-            self._send_line(line="_send_script(): p.communicate() failed")
+            self.message_service.publish_message(line="_send_script(): "
+                                                 "p.communicate() failed")
             raise(Exception("_send_script(): p.communicate() failed"))
 
         if p.returncode != 0:
-            self._send_line(line="ERROR: couldn't send script! "
+            self.message_service.publish_message(line="ERROR: couldn't send "
+                                                 "script! "
                        "Exit status: {0}".format(p.returncode))
-            self._send_line(line="===== STDOUT =====")
+            self.message_service.publish_message(line="===== STDOUT =====")
             for line in stdout_data.splitlines():
-                self._send_line(line=line)
-            self._send_line(line="===== STDERR =====")
+                self.message_service.publish_message(line=line)
+            self.message_service.publish_message(line="===== STDERR =====")
             for line in stderr_data.splitlines():
-                self._send_line(line=line)
+                self.message_service.publish_message(line=line)
 
             logger.error("_send_script(): exit status != 0.")
             logger.error("_send_script(): exit status: %s", p.returncode)
@@ -212,12 +216,12 @@ class RunSparkShell(BaseRemoteCommand):
         try:
             p = subprocess.Popen(ARGS, stdout=subprocess.PIPE)
         except:
-            self._send_line(line="_remote_spark_shell(): "
+            self.message_service.publish_message(line="_remote_spark_shell(): "
                             "subprocess.Popen() failed")
-            self._send_line(line="_remote_spark_shell(): "
+            self.message_service.publish_message(line="_remote_spark_shell(): "
                             " + SSH_BASE_ARGS: '{0}'"
                             "".format(settings.SSH_BASE_ARGS))
-            self._send_line(line="_remote_spark_shell(): "
+            self.message_service.publish_message(line="_remote_spark_shell(): "
                             " + ARGS: '{0}'".format(ARGS))
             raise(Exception("_remote_spark_shell(): "
                             "subprocess.Popen() failed"))
@@ -279,12 +283,12 @@ class Cat(BaseRemoteCommand):
         try:
             p = subprocess.Popen(ARGS, stdout=subprocess.PIPE)
         except:
-            self._send_line(line="_remote_cat(): "
+            self.message_service.publish_message(line="_remote_cat(): "
                             "subprocess.Popen() failed")
-            self._send_line(line="_remote_cat(): "
+            self.message_service.publish_message(line="_remote_cat(): "
                             " + SSH_BASE_ARGS: '{0}'"
                             "".format(settings.SSH_BASE_ARGS))
-            self._send_line(line="_remote_cat(): "
+            self.message_service.publish_message(line="_remote_cat(): "
                             " + ARGS: '{0}'".format(ARGS))
             raise(Exception("_remote_cat(): "
                             "subprocess.Popen() failed"))
@@ -345,12 +349,12 @@ class Echo(BaseRemoteCommand):
         try:
             p = subprocess.Popen(ARGS, stdout=subprocess.PIPE)
         except:
-            self._send_line(line="_remote_echo(): "
+            self.message_service.publish_message(line="_remote_echo(): "
                             "subprocess.Popen() failed")
-            self._send_line(line="_remote_echo(): "
+            self.message_service.publish_message(line="_remote_echo(): "
                             " + SSH_BASE_ARGS: '{0}'"
                             "".format(settings.SSH_BASE_ARGS))
-            self._send_line(line="_remote_echo(): "
+            self.message_service.publish_message(line="_remote_echo(): "
                             " + ARGS: '{0}'".format(ARGS))
             raise(Exception("_remote_echo(): "
                             "subprocess.Popen() failed"))
