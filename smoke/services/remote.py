@@ -13,6 +13,10 @@ from smoke.services.parsers import ApplicationMasterLaunchedParser, \
 logger = logging.getLogger(__name__)
 
 
+#==============================================================================
+# Base class for executing commands through ssh
+#==============================================================================
+
 class BaseRemoteCommand(object):
     """Base class for remote commands"""
 
@@ -133,6 +137,46 @@ class BaseRemoteCommand(object):
         raise(Exception("{0}: exit status != 0"
                         "".format(self.__class__.__name__)))
 
+    def _process_stdout(self, proc):
+        first_line = True
+        while True:
+            line = proc.stdout.readline()
+            # TODO: why sublines? to facilitate regexes!
+            for subline in [sl.rstrip()
+                            for sl in line.splitlines() if sl.strip()]:
+
+                logger.info("%s> %s", self.__class__.__name__, subline)
+
+                if first_line:
+                    first_line = False
+                    self.message_service.log_and_publish(
+                        "The first line was received", sparkStarted=True)
+
+                self._process_incoming_line(self.cookie, subline)
+
+            if not line:
+                # this works because empty lines are '\n' and so
+                # dont resovle to False
+                break
+
+        self.message_service.log_and_publish(
+            "Waiting for the child to join...")
+
+        proc.wait()
+
+        self.message_service.log_and_publish(
+            "{0}: job ended. exit_status: %s".format(self.__class__.__name__),
+            proc.returncode,
+            jobFinishedOk=True,
+            exitStatus=proc.returncode
+        )
+
+        return proc.returncode
+
+
+#==============================================================================
+# Remote commands
+#==============================================================================
 
 class MkTemp(BaseRemoteCommand):
     """Remote command to create a temporary file"""
@@ -144,6 +188,7 @@ class MkTemp(BaseRemoteCommand):
         """Creates a temporary file on the remote server"""
         self.message_service.log_and_publish("Executing mktemp in "
                                              "remote server")
+
         ARGS = settings.SSH_BASE_ARGS + ["mktemp", "-t",
                                          "spark-job-script-XXXXXXXXXX",
                                          "--suffix=.scala"]
@@ -233,38 +278,7 @@ class RunSparkShell(BaseRemoteCommand):
 
         p = self._popen(ARGS, stdout=subprocess.PIPE)
 
-        first_line = True
-        while True:
-            line = p.stdout.readline()
-            for subline in [sl.rstrip()
-                            for sl in line.splitlines() if sl.strip()]:
-
-                logger.info("spark-shell> %s", subline)
-
-                if first_line:
-                    first_line = False
-                    self.message_service.log_and_publish("The first line of "
-                                                         "spark shell "
-                                                         "was received",
-                                                         sparkStarted=True)
-
-                self._process_incoming_line(self.cookie, subline)
-
-            if not line:
-                # this works because empty lines are '\n' and so
-                # dont resovle to False
-                break
-
-        self.message_service.log_and_publish("Waiting for the child "
-                                             "to join...")
-        p.wait()
-
-        self.message_service.log_and_publish("spark-shell job ended. "
-                                             "exit_status: %s",
-                                             p.returncode, jobFinishedOk=True,
-                                             exitStatus=p.returncode)
-
-        return p.returncode
+        return self._process_stdout(p)
 
 
 class Cat(BaseRemoteCommand):
@@ -285,41 +299,10 @@ class Cat(BaseRemoteCommand):
         logger.info("Executing 'cat' (on server) of %s", script_path)
 
         ARGS = settings.SSH_BASE_ARGS + ["cat", script_path]
-        self.message_service.log_and_publish("subprocess.Popen(%s)", ARGS)
 
         p = self._popen(ARGS, stdout=subprocess.PIPE)
 
-        first_line = True
-        while True:
-            line = p.stdout.readline()
-            for subline in [sl.rstrip()
-                            for sl in line.splitlines() if sl.strip()]:
-
-                logger.info("cat> %s", subline)
-
-                if first_line:
-                    first_line = False
-                    self.message_service.log_and_publish("The first line of "
-                                                         "spark shell "
-                                                         "was received",
-                                                         sparkStarted=True)
-
-                self._process_incoming_line('', subline)
-
-            if not line:
-                # this works because empty lines are '\n' and so
-                # dont resovle to False
-                break
-
-        self.message_service.log_and_publish("Waiting for the child "
-                                             "to join...")
-        p.wait()
-
-        self.message_service.log_and_publish("cat finished. exit_status: %s",
-                                             p.returncode, jobFinishedOk=True,
-                                             exitStatus=p.returncode)
-
-        return p.returncode
+        return self._process_stdout(p)
 
 
 class Echo(BaseRemoteCommand):
@@ -340,39 +323,7 @@ class Echo(BaseRemoteCommand):
         logger.info("Executing 'echo pong' (on server)")
 
         ARGS = settings.SSH_BASE_ARGS + ["echo", "pong"]
-        self.message_service.log_and_publish("subprocess.Popen(%s)", ARGS)
 
         p = self._popen(ARGS, stdout=subprocess.PIPE)
 
-        first_line = True
-        while True:
-            line = p.stdout.readline()
-            for subline in [sl.rstrip()
-                            for sl in line.splitlines() if sl.strip()]:
-
-                logger.info("echo> %s", subline)
-
-                if first_line:
-                    first_line = False
-                    # self.message_service.log_and_publish("The first line of "
-                    #                         "spark shell was received",
-                    #                         sparkStarted=True)
-                    self.message_service.log_and_publish("The first line of "
-                                                         "'echo' was received")
-
-                self._process_incoming_line('', subline)
-
-            if not line:
-                # this works because empty lines are '\n' and so
-                # dont resovle to False
-                break
-
-        self.message_service.log_and_publish("Waiting for the child "
-                                             "to join...")
-        p.wait()
-
-        self.message_service.log_and_publish("echo finished. exit_status: %s",
-                                             p.returncode, jobFinishedOk=True,
-                                             exitStatus=p.returncode)
-
-        return p.returncode
+        return self._process_stdout(p)
