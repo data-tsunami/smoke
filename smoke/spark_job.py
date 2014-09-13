@@ -3,18 +3,19 @@
 from __future__ import unicode_literals
 
 import json
+from logging import LogRecord
 import logging
 import re
 import subprocess
+import uuid
+from xml.dom.minidom import parseString
 
 from django.conf import settings
 from django.utils import timezone
 from smoke.models import Job
 from ws4redis.publisher import RedisPublisher
 from ws4redis.redis_store import RedisMessage
-from xml.dom.minidom import parseString
-import uuid
-from logging import LogRecord
+
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +83,14 @@ class MessageService(object):
         self._log_lines = []
 
     def publish_message(self, line, **kwargs):
-        """Publishes a messages using Redis"""
+        """Publishes a messages using Redis. This line is sent to
+        the web.
+
+        The line could be an empty string
+        """
+        # Line could be an empty string: in case we need to inform
+        # some situation to the web tier, we send a dict with flags,
+        # but we don't want to send a log line.
         if line:
             self._log_lines.append(line)
 
@@ -93,7 +101,8 @@ class MessageService(object):
             RedisMessage(json.dumps(message_dict)))
 
     def log_and_publish(self, message, *args, **kwargs):
-        """Log a line using and send it to the web tier.
+        """Log a line using and publish it to the web tier.
+
         The *args are passed to logger.info()
         The **kwargs are passed to '_send_line()'
         """
