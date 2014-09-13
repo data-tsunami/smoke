@@ -131,7 +131,7 @@ class TestMessageFromShellParser(TestCase):
 
         self.assertFalse(parser.parse(WRONG_COOKIE))
 
-    def test_errorLine(self):
+    def test_errorLine_is_parsed(self):
         cookie = uuid.uuid4().hex
         msg_service = MessageServiceMock()
         parser = MessageFromShellParser(msg_service, cookie)
@@ -153,3 +153,27 @@ class TestMessageFromShellParser(TestCase):
                            for item in sublist]
 
         self.assertIn(True, error_msg_found)
+
+    def test_outputFileName_is_parsed(self):
+        cookie = uuid.uuid4().hex
+        msg_service = MessageServiceMock()
+        parser = MessageFromShellParser(msg_service, cookie)
+
+        output_filename = "/tmp/output-file-" + uuid.uuid4().hex
+        LINE = ("@@"
+                "<msgFromShell cookie='{0}'>"
+                "<outputFileName>{1}</outputFileName>"
+                "</msgFromShell>"
+                "@@".format(cookie,
+                            output_filename))
+
+        # -----
+
+        self.assertTrue(parser.parse(LINE))
+
+        outputFilenameReported = [item.get('outputFilenameReported', False)
+                                  for sublist in msg_service.messages
+                                  for item in sublist
+                                  if isinstance(item, dict)]
+
+        self.assertIn(output_filename, outputFilenameReported)
