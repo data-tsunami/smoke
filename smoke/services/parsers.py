@@ -9,43 +9,23 @@ from xml.dom.minidom import parseString
 
 logger = logging.getLogger(__name__)
 
-RE_APPLICATION_MASTER_LAUNCHED = re.compile(r"^\S+\s\S+\sINFO\s"
-                                            "yarn\.Client:\sCommand\sfor\s"
-                                            "starting\sthe\sSpark\s"
-                                            "ApplicationMaster")
-"""14/08/19 16:07:31 INFO yarn.Client: \
-   Command for starting the Spark ApplicationMaster: \
-   List(...)
-"""
-
-RE_TASK_FINISHED_WITH_PROGRESS = re.compile(r""
-                                            "^.*"
-                                            "INFO\s+"
-                                            "scheduler\.TaskSetManager:\s+"
-                                            "Finished\s+TID\s+"
-                                            "(\d+)\s+"
-                                            "in\s+"
-                                            "(\d+)\s+"
-                                            "ms\s+"
-                                            "on\s+"
-                                            "(.+)\s+"
-                                            "\("
-                                            "progress:\s+"
-                                            "(\d+)/(\d+)"
-                                            "\)"
-                                            )
-""" 14/08/19 17:02:15 INFO scheduler.TaskSetManager: \
-    Finished TID 24 in 3386 ms on xxxxxxxxx (progress: 26/70)
-"""
-
-RE_MESSAGE_FROM_SHELL = re.compile(r"^@@(.+)@@$")
-
 
 #------------------------------------------------------------
-# RE_APPLICATION_MASTER_LAUNCHED
+# ApplicationMasterLaunchedParser
 #------------------------------------------------------------
 
 class ApplicationMasterLaunchedParser(object):
+
+    RE_APPLICATION_MASTER_LAUNCHED = re.compile(
+        r"^\S+\s\S+\sINFO\s"
+        "yarn\.Client:\sCommand\sfor\s"
+        "starting\sthe\sSpark\s"
+        "ApplicationMaster"
+    )
+    """14/08/19 16:07:31 INFO yarn.Client: \
+       Command for starting the Spark ApplicationMaster: \
+       List(...)
+    """
 
     def __init__(self, message_service, cookie):
         self.message_service = message_service
@@ -56,8 +36,8 @@ class ApplicationMasterLaunchedParser(object):
 
         :returns: True if the line was parsed and handled
         """
-
-        if not RE_APPLICATION_MASTER_LAUNCHED.search(subline):
+        patt = ApplicationMasterLaunchedParser.RE_APPLICATION_MASTER_LAUNCHED
+        if not patt.search(subline):
             return False
 
         self.message_service.log_and_publish(subline,
@@ -67,10 +47,30 @@ class ApplicationMasterLaunchedParser(object):
 
 
 #------------------------------------------------------------
-# RE_TASK_FINISHED_WITH_PROGRESS
+# TaskFinishedWithProgressParser
 #------------------------------------------------------------
 
 class TaskFinishedWithProgressParser(object):
+
+    RE_TASK_FINISHED_WITH_PROGRESS = re.compile(r""
+                                                "^.*"
+                                                "INFO\s+"
+                                                "scheduler\.TaskSetManager:\s+"
+                                                "Finished\s+TID\s+"
+                                                "(\d+)\s+"
+                                                "in\s+"
+                                                "(\d+)\s+"
+                                                "ms\s+"
+                                                "on\s+"
+                                                "(.+)\s+"
+                                                "\("
+                                                "progress:\s+"
+                                                "(\d+)/(\d+)"
+                                                "\)"
+                                                )
+    """ 14/08/19 17:02:15 INFO scheduler.TaskSetManager: \
+        Finished TID 24 in 3386 ms on xxxxxxxxx (progress: 26/70)
+    """
 
     def __init__(self, message_service, cookie):
         self.message_service = message_service
@@ -82,7 +82,8 @@ class TaskFinishedWithProgressParser(object):
         :returns: True if the line was parsed and handled
         """
 
-        progress_match = RE_TASK_FINISHED_WITH_PROGRESS.search(subline)
+        patt = TaskFinishedWithProgressParser.RE_TASK_FINISHED_WITH_PROGRESS
+        progress_match = patt.search(subline)
         if not progress_match:
             return False
 
@@ -101,10 +102,12 @@ class TaskFinishedWithProgressParser(object):
 
 
 #------------------------------------------------------------
-# RE_MESSAGE_FROM_SHELL
+# MessageFromShellParser
 #------------------------------------------------------------
 
 class MessageFromShellParser(object):
+
+    RE_MESSAGE_FROM_SHELL = re.compile(r"^@@(.+)@@$")
 
     def __init__(self, message_service, cookie):
         self.message_service = message_service
@@ -116,7 +119,8 @@ class MessageFromShellParser(object):
         :returns: True if the line was parsed and handled
         """
 
-        msg_from_shell = RE_MESSAGE_FROM_SHELL.search(subline)
+        patt = MessageFromShellParser.RE_MESSAGE_FROM_SHELL
+        msg_from_shell = patt.search(subline)
         if not msg_from_shell:
             return False
 
