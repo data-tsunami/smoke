@@ -26,7 +26,7 @@ class BaseRemoteCommand(object):
             MessageFromShellParser(self.message_service, self.cookie),
         )
 
-    def _process_line(self, cookie, subline):
+    def _process_incoming_line(self, cookie, subline):
         """Process a line of the spark-shell output."""
 
         # At this point, 'subline' was logged (ie: will appear
@@ -239,7 +239,7 @@ class RunSparkShell(BaseRemoteCommand):
                                                          "was received",
                                                          sparkStarted=True)
 
-                self._process_line(self.cookie, subline)
+                self._process_incoming_line(self.cookie, subline)
 
             if not line:
                 # this works because empty lines are '\n' and so
@@ -306,7 +306,7 @@ class Cat(BaseRemoteCommand):
                                                          "was received",
                                                          sparkStarted=True)
 
-                self._process_line('', subline)
+                self._process_incoming_line('', subline)
 
             if not line:
                 # this works because empty lines are '\n' and so
@@ -373,7 +373,7 @@ class Echo(BaseRemoteCommand):
                     self.message_service.log_and_publish("The first line of "
                                                          "'echo' was received")
 
-                self._process_line('', subline)
+                self._process_incoming_line('', subline)
 
             if not line:
                 # this works because empty lines are '\n' and so
