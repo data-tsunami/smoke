@@ -184,17 +184,22 @@ class MkTemp(BaseRemoteCommand):
     def __init__(self, message_service, cookie):
         super(MkTemp, self).__init__(message_service, cookie)
 
-    def mktemp(self):
-        """Creates a temporary file on the remote server"""
-        self.message_service.log_and_publish("Executing mktemp in "
-                                             "remote server")
+    def get_command(self):
+        """Gererates the command to execute to launch the remote process"""
 
         ARGS = settings.SSH_BASE_ARGS + ["mktemp", "-t",
                                          "spark-job-script-XXXXXXXXXX",
                                          "--suffix=.scala"]
 
+        return ARGS
+
+    def mktemp(self):
+        """Creates a temporary file on the remote server"""
+        self.message_service.log_and_publish("Executing mktemp in "
+                                             "remote server")
+
         proc, stdout_data, stderr_data = self._popen_and_communicate(
-            ARGS,
+            self.get_command(),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
@@ -217,6 +222,13 @@ class SendScript(BaseRemoteCommand):
         super(SendScript, self).__init__(message_service, cookie)
         self.mktemp_service = MkTemp(message_service, cookie)
 
+    def get_command(self, temp_file):
+        """Gererates the command to execute to launch the remote process"""
+
+        ARGS = settings.SSH_BASE_ARGS + ["cat > {0}".format(temp_file)]
+
+        return ARGS
+
     def send_script(self, script):
         """Sube script a servidor.
 
@@ -226,10 +238,8 @@ class SendScript(BaseRemoteCommand):
 
         temp_file = self.mktemp_service.mktemp()
 
-        ARGS = settings.SSH_BASE_ARGS + ["cat > {0}".format(temp_file)]
-
         proc, stdout_data, stderr_data = self._popen_and_communicate(
-            ARGS,
+            self.get_command(temp_file),
             stdout=subprocess.PIPE,
             stdin=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -249,12 +259,8 @@ class RunSparkShell(BaseRemoteCommand):
     def __init__(self, message_service, cookie):
         super(RunSparkShell, self).__init__(message_service, cookie)
 
-    def run_spark_shell(self, script_path):
-        """Ejecuta script spark en servidor.
-
-        :returns: exit status of subprocess
-        """
-        logger.info("Ejecutando script en server: %s", script_path)
+    def get_command(self, script_path):
+        """Gererates the command to execute to launch the remote process"""
 
         REMOTE_COMMAND_TEMPLATE = \
             "'" + \
@@ -270,13 +276,22 @@ class RunSparkShell(BaseRemoteCommand):
             spark_shell_opts=settings.REMOTE_SPARK_SHELL_PATH_OPTS,
         )
 
-        self.message_service.log_and_publish("Using cookie: %s", self.cookie)
-
         ARGS = settings.SSH_BASE_ARGS + ["env",
                                          "DATATSUNAMI_COOKIE=" + self.cookie,
                                          "sh", "-c", REMOTE_COMMAND]
 
-        p = self._popen(ARGS, stdout=subprocess.PIPE)
+        return ARGS
+
+    def run_spark_shell(self, script_path):
+        """Runs the spark script on the server.
+
+        :returns: exit status of subprocess
+        """
+        logger.info("Executing script on server: %s", script_path)
+
+        self.message_service.log_and_publish("Using cookie: %s", self.cookie)
+
+        p = self._popen(self.get_command(script_path), stdout=subprocess.PIPE)
 
         return self._process_stdout(p)
 
@@ -286,21 +301,22 @@ class Cat(BaseRemoteCommand):
     def __init__(self, message_service, cookie):
         super(Cat, self).__init__(message_service, cookie)
 
+    def get_command(self, script_path):
+        """Gererates the command to execute to launch the remote process"""
+
+        ARGS = settings.SSH_BASE_ARGS + ["cat", script_path]
+
+        return ARGS
+
     def run_cat(self, script_path):
         """Does a 'cat' of the script on the server.
 
         :returns: exit status of subprocess
         """
 
-        #
-        # FIXME: this is a copy-n-paste of _remote_spark_shell()
-        #
-
         logger.info("Executing 'cat' (on server) of %s", script_path)
 
-        ARGS = settings.SSH_BASE_ARGS + ["cat", script_path]
-
-        p = self._popen(ARGS, stdout=subprocess.PIPE)
+        p = self._popen(self.get_command(script_path), stdout=subprocess.PIPE)
 
         return self._process_stdout(p)
 
@@ -310,20 +326,21 @@ class Echo(BaseRemoteCommand):
     def __init__(self, message_service, cookie):
         super(Echo, self).__init__(message_service, cookie)
 
+    def get_command(self):
+        """Gererates the command to execute to launch the remote process"""
+
+        ARGS = settings.SSH_BASE_ARGS + ["echo", "pong"]
+
+        return ARGS
+
     def remote_echo(self):
         """Does a 'echo pong' on the server.
 
         :returns: exit status of subprocess
         """
 
-        #
-        # FIXME: this is a copy-n-paste of _remote_spark_shell()
-        #
-
         logger.info("Executing 'echo pong' (on server)")
 
-        ARGS = settings.SSH_BASE_ARGS + ["echo", "pong"]
-
-        p = self._popen(ARGS, stdout=subprocess.PIPE)
+        p = self._popen(self.get_command(), stdout=subprocess.PIPE)
 
         return self._process_stdout(p)
