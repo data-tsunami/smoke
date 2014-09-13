@@ -7,6 +7,8 @@ import uuid
 from django.test import TestCase
 from smoke.services.parsers import ApplicationMasterLaunchedParser, \
     TaskFinishedWithProgressParser, MessageFromShellParser
+from smoke.tests.utils import MessageServiceMock
+
 
 GENERAL_INVALID_LINES = (
 
@@ -21,24 +23,6 @@ GENERAL_INVALID_LINES = (
      "Completed ShuffleMapTask(1, 0)")
 
 )
-
-
-class MessageServiceMock(object):
-
-    def __init__(self):
-        self.messages = []
-
-    def publish_message(self, line, **kwargs):
-        self.messages.append((line, kwargs))
-
-    def log_and_publish(self, message, *args, **kwargs):
-        self.messages.append((message, args, kwargs))
-
-    def log_and_publish_error(self, message, *args, **kwargs):
-        self.messages.append((message, args, kwargs))
-
-    def get_log(self):
-        pass
 
 
 class TestApplicationMasterLaunchedParser(TestCase):
