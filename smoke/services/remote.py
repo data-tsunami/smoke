@@ -53,6 +53,42 @@ class BaseRemoteCommand(object):
                                              lineIsFromRemoteOutput=True)
         return
 
+    def _popen_and_communicate(self, args, std_input=None):
+        """Executes subprocess.Popen.
+
+        :returns: process, stdout_data, stderr_data
+        """
+        self.message_service.log_and_publish("subprocess.Popen(%s)", args)
+
+        try:
+            p = subprocess.Popen(args, stdout=subprocess.PIPE,
+                                 stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+        except:
+            self.message_service.publish_message(
+                line="{0}: subprocess.Popen() failed".format(
+                    self.__class__.__name__))
+            self.message_service.publish_message(
+                line="{0}:  + SSH_CMD: '{1}'"
+                "".format(self.__class__.__name__, settings.SSH_BASE_ARGS))
+            self.message_service.publish_message(
+                line="{0}:  + ARGS: '{1}'".format(self.__class__.__name__,
+                                                  args))
+            raise(Exception("{0}: subprocess.Popen() failed".format(
+                self.__class__.__name__)))
+
+        try:
+            stdout_data, stderr_data = p.communicate(input=std_input)
+            return p, stdout_data, stderr_data
+
+        except:
+            logger.exception("%s: process.communicate() failed",
+                             self.__class__.__name__)
+            self.message_service.publish_message(
+                line="{0}: p.communicate() failed".format(
+                    self.__class__.__name__))
+            raise(Exception("{0}: p.communicate() failed".format(
+                self.__class__.__name__)))
+
 
 class MkTemp(BaseRemoteCommand):
 
@@ -66,32 +102,13 @@ class MkTemp(BaseRemoteCommand):
         ARGS = settings.SSH_BASE_ARGS + ["mktemp", "-t",
                                          "spark-job-script-XXXXXXXXXX",
                                          "--suffix=.scala"]
-        self.message_service.log_and_publish("subprocess.Popen(%s)", ARGS)
 
-        try:
-            p = subprocess.Popen(ARGS, stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-        except:
-            self.message_service.publish_message(
-                line="_mktemp(): subprocess.Popen() failed")
-            self.message_service.publish_message(
-                line="_mktemp():  + SSH_CMD: '{0}'".format(
-                    settings.SSH_BASE_ARGS))
-            self.message_service.publish_message(
-                line="_mktemp():  + ARGS: '{0}'".format(ARGS))
-            raise(Exception("_mktemp(): subprocess.Popen() failed"))
+        proc, stdout_data, stderr_data = self._popen_and_communicate(ARGS)
 
-        try:
-            stdout_data, stderr_data = p.communicate()
-        except:
-            self.message_service.publish_message(
-                line="_mktemp(): p.communicate() failed")
-            raise(Exception("_mktemp(): p.communicate() failed"))
-
-        if p.returncode != 0:
+        if proc.returncode != 0:
             self.message_service.publish_message(
                 line="ERROR: mktemp failed! Exit status: {0}".format(
-                    p.returncode))
+                    proc.returncode))
             self.message_service.publish_message(line="===== STDOUT =====")
             for line in stdout_data.splitlines():
                 self.message_service.publish_message(line=line)
@@ -100,7 +117,7 @@ class MkTemp(BaseRemoteCommand):
                 self.message_service.publish_message(line=line)
 
             logger.error("_mktemp(): exit status != 0.")
-            logger.error("_mktemp(): exit status: %s", p.returncode)
+            logger.error("_mktemp(): exit status: %s", proc.returncode)
             logger.error("_mktemp(): STDOUT: %s", stdout_data)
             logger.error("_mktemp(): STDERR: %s", stderr_data)
 
@@ -132,32 +149,14 @@ class SendScript(BaseRemoteCommand):
         temp_file = self.mktemp_service.mktemp()
 
         ARGS = settings.SSH_BASE_ARGS + ["cat > {0}".format(temp_file)]
-        self.message_service.log_and_publish("subprocess.Popen(%s)", ARGS)
 
-        try:
-            p = subprocess.Popen(ARGS, stdout=subprocess.PIPE,
-                                 stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-        except:
-            self.message_service.publish_message(
-                line="_send_script(): subprocess.Popen() failed")
-            self.message_service.publish_message(
-                line="_send_script():  + SSH_CMD: '{0}'"
-                "".format(settings.SSH_BASE_ARGS))
-            self.message_service.publish_message(
-                line="_send_script():  + ARGS: '{0}'".format(ARGS))
-            raise(Exception("_send_script(): subprocess.Popen() failed"))
+        proc, stdout_data, stderr_data = self._popen_and_communicate(
+            ARGS, std_input=script)
 
-        try:
-            stdout_data, stderr_data = p.communicate(input=script)
-        except:
-            self.message_service.publish_message(line="_send_script(): "
-                                                 "p.communicate() failed")
-            raise(Exception("_send_script(): p.communicate() failed"))
-
-        if p.returncode != 0:
+        if proc.returncode != 0:
             self.message_service.publish_message(line="ERROR: couldn't send "
                                                  "script! "
-                       "Exit status: {0}".format(p.returncode))
+                       "Exit status: {0}".format(proc.returncode))
             self.message_service.publish_message(line="===== STDOUT =====")
             for line in stdout_data.splitlines():
                 self.message_service.publish_message(line=line)
@@ -165,12 +164,12 @@ class SendScript(BaseRemoteCommand):
             for line in stderr_data.splitlines():
                 self.message_service.publish_message(line=line)
 
-            logger.error("_send_script(): exit status != 0.")
-            logger.error("_send_script(): exit status: %s", p.returncode)
-            logger.error("_send_script(): STDOUT: %s", stdout_data)
-            logger.error("_send_script(): STDERR: %s", stderr_data)
+            logger.error("send_script(): exit status != 0.")
+            logger.error("send_script(): exit status: %s", proc.returncode)
+            logger.error("send_script(): STDOUT: %s", stdout_data)
+            logger.error("send_script(): STDERR: %s", stderr_data)
 
-            raise(Exception("_send_script(): exit status != 0"))
+            raise(Exception("send_script(): exit status != 0"))
 
         self.message_service.log_and_publish("Script contents were sent "
                                              "successfully")
