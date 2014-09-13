@@ -133,12 +133,10 @@ class MessageFromShellParser(object):
         except Exception as e:
             logger.exception("Parsing XML failed")
 
-            self.message_service.log_and_publish("Exception detected when "
-                                                 "tryed to parse line from "
-                                                 "shell: %s", e,
-                                                 errorLine=True)
+            self.message_service.log_and_publish_error(
+                "Exception detected when tryed to parse line from shell: %s",
+                e, errorLine=True)
 
-            # TODO: the previouws line must be logged as error
             return False
 
         #======================================================================
@@ -151,12 +149,10 @@ class MessageFromShellParser(object):
         except Exception as e:
             logger.exception("Handling XML failed")
 
-            self.message_service.log_and_publish("Exception detected when "
-                                                 "trying to handle XML from "
-                                                 "line from shell: %s",
-                                                 e, errorLine=True)
+            self.message_service.log_and_publish_error(
+                "Exception detected when trying to handle XML from "
+                "line from shell: %s", e, errorLine=True)
 
-            # TODO: the previouws line must be logged as error
             return False
 
     def _process_xml(self, subline, root):
@@ -167,14 +163,10 @@ class MessageFromShellParser(object):
         # Check cookie
         if cookie_from_xml != self.cookie:
             # BAD COOKIE!
-            self.message_service.log_and_publish(
-                "ERROR: cookies doesn't matches. "
-                "Cookie: %s - From XML: %s",
-                self.cookie,
-                cookie_from_xml,
-                lineIsFromRemoteOutput=True,
+            self.message_service.log_and_publish_error(
+                "ERROR: cookies doesn't matches. Cookie: %s - From XML: %s",
+                self.cookie, cookie_from_xml, lineIsFromRemoteOutput=True,
                 errorLine=True)
-            # TODO: the previouws line must be logged as error
             return False
 
         # Check <errorLine>
@@ -206,8 +198,7 @@ class MessageFromShellParser(object):
             return True
 
         # UNKNOW <msgFromShell> TYPE
-        self.message_service.log_and_publish("ERROR: unknown type of line "
-                                             "from shell: %s",
-                                             subline, errorLine=True)
-        # TODO: the previouws line must be logged as error
+        self.message_service.log_and_publish_error(
+            "ERROR: unknown type of line from shell: %s", subline,
+            errorLine=True)
         return False

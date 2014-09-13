@@ -42,11 +42,9 @@ class BaseRemoteCommand(object):
             except Exception as e:
                 logger.exception("Exception detected when handling")
 
-                self.message_service.log_and_publish("Exception detected when "
-                                                     "handling line: %s", e,
-                                                     errorLine=True)
-
-                # TODO: the previouws line must be logged as error
+                self.message_service.log_and_publish_error(
+                    "Exception detected when handling line: %s",
+                    e, errorLine=True)
 
         #------------------------------------------------------------
         # It's a normal, plain line. Any parser handled the line
