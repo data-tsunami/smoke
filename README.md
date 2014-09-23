@@ -74,7 +74,7 @@ Install and start Redis! On Ubuntu 14.04, you must run:
 
 ###### ERROR: you need to build uWSGI with SSL support to use the websocket handshake api function
 
-You forgot install the required packages. Install `libssl-dev` and reinstall the `virtualenv` requirements.
+You forgot to install the required packages. Install `libssl-dev` and reinstall the `virtualenv` requirements.
 
 ###### Run in Docker
 
@@ -132,7 +132,7 @@ As Smoke is currently in its initial development, security isn't the main goal y
 
 ###### Spark Tasks progress
 
-The log are parsed looking for **TaskSetManager** and **Finished TID**, and the progress is parsed and informed (in this case, progress was 4 task finished of 10):
+The logs lines are parsed looking for **TaskSetManager** and **Finished TID**, and the progress is parsed and reported (in this case, progress was 4 task finished of 10):
 
     14/08/23 12:48:53 INFO scheduler.DAGScheduler: Completed ShuffleMapTask(1, 0)
     14/08/23 12:48:53 INFO scheduler.TaskSetManager: Finished TID 0 in 7443 ms on hadoop-hitachi80gb.hadoop.dev.docker.data-tsunami.com (progress: 4/10)
