@@ -142,7 +142,7 @@ The logs lines are parsed looking for **TaskSetManager** and **Finished TID**, a
 
 ### Licence: GPLv3
 
-    Smoke - Launch Spark jobs from the web
+    Smoke - Run Spark jobs from the web
     
     Copyright (C) 2014 Horacio Guillermo de Oro <hgdeoro@gmail.com>
     
