@@ -82,7 +82,7 @@ If you are brave enough, see instructions at [Dockerfile!](Dockerfile).
 
 ###### Security
 
-Being the firsts stage of development, security is't the main goal yet.
+As Smoke is currently in its initial development, security isn't the main goal yet.
 
 ## Next steps
 
